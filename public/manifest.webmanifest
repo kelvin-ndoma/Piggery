@@ -1,0 +1,16 @@
+{
+  "name": "Piggery",
+  "short_name": "Piggery",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f4f1ea",
+  "theme_color": "#1f4d3a",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
