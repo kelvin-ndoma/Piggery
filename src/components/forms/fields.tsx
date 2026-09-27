@@ -90,10 +90,10 @@ export function SearchSelect({
   const selected = options.find((option) => option.value === value);
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return options.slice(0, 30);
+    if (!needle) return options.slice(0, 100);
     return options
       .filter((option) => `${option.label} ${option.keywords ?? ""} ${option.description ?? ""}`.toLowerCase().includes(needle))
-      .slice(0, 30);
+      .slice(0, 100);
   }, [options, query]);
 
   return (

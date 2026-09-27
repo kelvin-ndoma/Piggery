@@ -16,12 +16,12 @@ export function WeightChart({ series }: { series: Array<{ pigId: string; points:
   });
   if (data.length === 0) return null;
   return (
-    <div className="h-72 w-full rounded-2xl border bg-white p-3">
+    <div className="h-72 w-full min-w-0 overflow-hidden rounded-2xl border bg-white p-2 sm:p-3">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data}>
+        <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid stroke="#eee" />
-          <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-          <YAxis tick={{ fontSize: 12 }} unit=" kg" width={56} />
+          <XAxis dataKey="date" tick={{ fontSize: 11 }} minTickGap={24} />
+          <YAxis tick={{ fontSize: 11 }} unit=" kg" width={48} />
           <Tooltip />
           <Legend />
           {series.map((item, index) => (

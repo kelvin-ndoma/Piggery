@@ -62,7 +62,7 @@ export function ScanClient() {
     <div className="mx-auto max-w-md space-y-4">
       {error ? <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-950">{error}</p> : null}
       {camera ? <video ref={videoRef} className="aspect-square w-full rounded-2xl bg-stone-900 object-cover" muted playsInline /> : null}
-      <Button type="button" onClick={() => setCamera(true)}>Use camera</Button>
+      <Button type="button" className="w-full" onClick={() => setCamera(true)}>Use camera</Button>
       <form onSubmit={openManual} className="space-y-3">
         <Input value={manual} onChange={(event) => setManual(event.target.value)} placeholder="PIG-0041" aria-label="Pig ID" />
         <Button type="submit" variant="outline" className="w-full">Open pig</Button>

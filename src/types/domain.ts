@@ -19,7 +19,7 @@ export const PERMISSIONS = [
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
-export const PIG_SEX = ["MALE", "FEMALE"] as const;
+export const PIG_SEX = ["MALE", "FEMALE", "UNKNOWN"] as const;
 export type PigSex = (typeof PIG_SEX)[number];
 
 export const PIG_SOURCE = ["BORN_ON_FARM", "PURCHASED", "TRANSFERRED", "UNKNOWN"] as const;

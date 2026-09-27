@@ -88,6 +88,7 @@ export type PenDoc = {
   type: PenType;
   capacity?: number | null;
   notes?: string;
+  plannedFeedKgPerDay?: number | null;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -102,6 +103,7 @@ const penSchema = new Schema<PenDoc>(
     type: { type: String, enum: PEN_TYPES, required: true },
     capacity: { type: Number, min: 0 },
     notes: { type: String, maxlength: 1000 },
+    plannedFeedKgPerDay: { type: Number, min: 0 },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },

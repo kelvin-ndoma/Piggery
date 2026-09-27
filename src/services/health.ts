@@ -67,7 +67,7 @@ export async function recordVaccination(ctx: FarmContext, input: VaccinationInpu
   assertCanVaccinate(pig.status, Boolean(input.recordAsHistorical), ctx.role);
   const currentDay = today(ctx);
   assertNotFuture(input.date, currentDay, "Vaccination date");
-  if (input.date < pig.dateOfBirth) {
+  if (pig.dateOfBirth && input.date < pig.dateOfBirth) {
     throw new AppError("VALIDATION_ERROR", "The vaccination date cannot be before the pig's date of birth.", 400);
   }
   const vaccine = await Vaccine.findOne({ _id: input.vaccineId, farmId: farmOid(ctx), isActive: true });
@@ -294,7 +294,7 @@ export async function recordMortality(ctx: FarmContext, input: MortalityInput) {
   }
   const currentDay = today(ctx);
   assertNotFuture(input.date, currentDay, "Mortality date");
-  if (input.date < pig.dateOfBirth) {
+  if (pig.dateOfBirth && input.date < pig.dateOfBirth) {
     throw new AppError("VALIDATION_ERROR", "The mortality date cannot be before the pig's date of birth.", 400);
   }
   const farmId = farmOid(ctx);
@@ -307,7 +307,7 @@ export async function recordMortality(ctx: FarmContext, input: MortalityInput) {
         pigId: pig._id,
         date: input.date,
         weightKg: input.weightKg ?? undefined,
-        ageDays: Math.max(0, daysBetween(pig.dateOfBirth, input.date)),
+        ageDays: pig.dateOfBirth ? Math.max(0, daysBetween(pig.dateOfBirth, input.date)) : 0,
         suspectedCause: input.suspectedCause,
         confirmedCause: input.confirmedCause,
         incidentId: input.incidentId ? toObjectId(input.incidentId) : undefined,

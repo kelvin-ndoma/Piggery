@@ -33,6 +33,11 @@ export const optionalDate = z
   .optional()
   .transform((value) => value || undefined);
 
+const clearableDate = z
+  .union([dateSchema, z.literal(""), z.null()])
+  .optional()
+  .transform((value) => (value === undefined ? undefined : value || null));
+
 export const optionalText = (max: number) =>
   z
     .string()
@@ -55,7 +60,7 @@ export const createPigSchema = z.object({
   earTag: optionalText(40),
   sex: z.enum(PIG_SEX),
   breed: z.string().trim().min(1, "Enter a breed").max(80),
-  dateOfBirth: dateSchema,
+  dateOfBirth: optionalDate,
   source: z.enum(PIG_SOURCE),
   motherId: optionalObjectId,
   fatherId: optionalObjectId,
@@ -65,16 +70,17 @@ export const createPigSchema = z.object({
   acquisitionDate: optionalDate,
   acquisitionSupplier: optionalText(120),
   acquisitionPrice: z.number().min(0).optional().nullable(),
+  confirmOverCapacity: z.boolean().optional(),
   clientTransactionId: transactionSchema,
 });
 
 export const updatePigSchema = z.object({
-  earTag: optionalText(40),
+  earTag: z.string().trim().max(40).optional(),
   breed: z.string().trim().min(1).max(80).optional(),
-  dateOfBirth: dateSchema.optional(),
+  dateOfBirth: clearableDate,
   category: z.enum(PIG_CATEGORY).optional(),
   sex: z.enum(PIG_SEX).optional(),
-  notes: optionalText(2000),
+  notes: z.string().trim().max(2000).optional(),
   source: z.enum(PIG_SOURCE).optional(),
   motherId: optionalObjectId,
   fatherId: optionalObjectId,

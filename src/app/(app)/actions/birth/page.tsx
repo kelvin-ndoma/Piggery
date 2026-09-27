@@ -4,8 +4,9 @@ import { requireFarmContext } from "@/lib/context";
 import { listBreeding } from "@/services/breeding";
 import { pigOptions } from "@/services/pigs";
 
-export default async function BirthPage() {
+export default async function BirthPage({ searchParams }: { searchParams: Promise<{ sow?: string }> }) {
   const ctx = await requireFarmContext();
+  const query = await searchParams;
   const [sows, boars, breeding] = await Promise.all([
     pigOptions(ctx, { sex: "FEMALE" }),
     pigOptions(ctx, { sex: "MALE" }),
@@ -18,6 +19,7 @@ export default async function BirthPage() {
         sows={sows}
         boars={boars}
         breeding={breeding.filter((item) => item.status !== "FARROWED").map((item) => ({ value: item.id, label: `${item.sow} · ${item.breedingDate}`, description: item.status }))}
+        presetMotherId={query.sow}
       />
     </div>
   );

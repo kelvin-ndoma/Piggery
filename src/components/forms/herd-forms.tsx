@@ -4,12 +4,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FormCard, FormError, SearchSelect, SelectField, TextInput } from "@/components/forms/fields";
 import { useRecordForm } from "@/components/forms/use-record-form";
-import { breedingSchema, createPigSchema, exitSchema, litterSchema, movementSchema, pigletSchema, saleSchema, weightSchema } from "@/schemas";
-import { BREEDING_METHODS, MOVEMENT_REASONS, PIG_CATEGORY, PIG_SEX, PIG_SOURCE } from "@/types/domain";
+import { breedingSchema, createPigSchema, exitSchema, litterSchema, movementSchema, pigletSchema, saleSchema, updatePigSchema, weightSchema } from "@/schemas";
+import { BREEDING_METHODS, MOVEMENT_REASONS, PIG_CATEGORY, PIG_SEX, PIG_SOURCE, type PigCategory, type PigSex, type PigSource } from "@/types/domain";
 import type { SelectOption } from "@/types/api";
 import { labelize } from "@/lib/utils";
 
 const numberAs = { setValueAs: (value: string) => (value === "" ? undefined : Number(value)) };
+const sexOptions = PIG_SEX.map((value) => ({ value, label: value === "UNKNOWN" ? "Not recorded" : labelize(value) }));
 
 export function PigForm({ pens, pigs, showPrice }: { pens: SelectOption[]; pigs: SelectOption[]; showPrice: boolean }) {
   const { form, error, pending, onSubmit } = useRecordForm({
@@ -37,7 +38,7 @@ export function PigForm({ pens, pigs, showPrice }: { pens: SelectOption[]; pigs:
         <FormError message={error} />
         <TextInput label="Pig ID" hint="Leave blank to generate the next ID, such as PIG-0041." registration={form.register("pigId")} error={form.formState.errors.pigId} />
         <TextInput label="Ear tag" registration={form.register("earTag")} />
-        <SelectField label="Sex" registration={form.register("sex")} options={PIG_SEX.map((value) => ({ value, label: labelize(value) }))} />
+        <SelectField label="Sex" registration={form.register("sex")} options={sexOptions} />
         <TextInput label="Breed" registration={form.register("breed")} error={form.formState.errors.breed} />
         <TextInput label="Date of birth" type="date" registration={form.register("dateOfBirth")} error={form.formState.errors.dateOfBirth} />
         <SelectField label="Source" registration={form.register("source")} options={PIG_SOURCE.map((value) => ({ value, label: labelize(value) }))} />
@@ -48,6 +49,104 @@ export function PigForm({ pens, pigs, showPrice }: { pens: SelectOption[]; pigs:
         <TextInput label="Notes" type="textarea" registration={form.register("notes")} />
         {showPrice ? <TextInput label="Acquisition price" type="number" registration={form.register("acquisitionPrice", numberAs)} hint="Stored for the owner and manager." /> : null}
         <Button type="submit" disabled={pending}>{pending ? "Saving..." : "Save pig"}</Button>
+      </FormCard>
+    </form>
+  );
+}
+
+export function EditPigForm({
+  pigRef,
+  females,
+  males,
+  values,
+}: {
+  pigRef: string;
+  females: SelectOption[];
+  males: SelectOption[];
+  values: {
+    earTag: string;
+    sex: PigSex;
+    breed: string;
+    dateOfBirth: string;
+    source: PigSource;
+    category: PigCategory;
+    notes: string;
+    motherId: string;
+    fatherId: string;
+  };
+}) {
+  const { form, error, pending, onSubmit } = useRecordForm({
+    url: `/api/pigs/${pigRef}`,
+    method: "PATCH",
+    schema: updatePigSchema,
+    defaultValues: values,
+    successMessage: "Pig details saved",
+  });
+  return (
+    <form onSubmit={onSubmit}>
+      <FormCard title="Edit details">
+        <FormError message={error} />
+        <TextInput label="Ear tag" registration={form.register("earTag")} />
+        <SelectField label="Sex" registration={form.register("sex")} options={sexOptions} />
+        <TextInput label="Breed" registration={form.register("breed")} error={form.formState.errors.breed} />
+        <TextInput label="Date of birth" type="date" registration={form.register("dateOfBirth")} error={form.formState.errors.dateOfBirth} />
+        <SelectField label="Source" registration={form.register("source")} options={PIG_SOURCE.map((value) => ({ value, label: labelize(value) }))} />
+        <SelectField label="Category" registration={form.register("category")} options={PIG_CATEGORY.map((value) => ({ value, label: labelize(value) }))} />
+        <SearchSelect label="Mother" options={females} value={form.watch("motherId") ?? ""} onChange={(value) => form.setValue("motherId", value)} />
+        <SearchSelect label="Father" options={males} value={form.watch("fatherId") ?? ""} onChange={(value) => form.setValue("fatherId", value)} />
+        <TextInput label="Notes" type="textarea" registration={form.register("notes")} />
+        <p className="text-sm text-stone-500">Use Move to change the room. That keeps the movement history.</p>
+        <Button type="submit" disabled={pending}>{pending ? "Saving..." : "Save details"}</Button>
+      </FormCard>
+    </form>
+  );
+}
+
+export function AddPigletForm({
+  motherId,
+  breed,
+  penId,
+  boars,
+  pens,
+}: {
+  motherId: string;
+  breed: string;
+  penId: string;
+  boars: SelectOption[];
+  pens: SelectOption[];
+}) {
+  const { form, error, pending, onSubmit } = useRecordForm({
+    url: "/api/pigs",
+    schema: createPigSchema,
+    defaultValues: {
+      pigId: "",
+      earTag: "",
+      sex: "UNKNOWN",
+      breed,
+      dateOfBirth: "",
+      source: "BORN_ON_FARM",
+      category: "PIGLET",
+      motherId,
+      fatherId: "",
+      currentPenId: penId,
+      notes: "",
+      confirmOverCapacity: true,
+    },
+    successMessage: "Piglet added",
+  });
+  return (
+    <form onSubmit={onSubmit}>
+      <FormCard title="Add a piglet">
+        <FormError message={error} />
+        <TextInput label="Pig ID" hint="Leave blank to generate the next ID." registration={form.register("pigId")} />
+        <SelectField label="Sex" registration={form.register("sex")} options={sexOptions} />
+        <TextInput label="Ear tag" registration={form.register("earTag")} />
+        <TextInput label="Breed" registration={form.register("breed")} error={form.formState.errors.breed} />
+        <TextInput label="Date of birth" type="date" hint="Leave blank if it is not known yet." registration={form.register("dateOfBirth")} />
+        <SearchSelect label="Father" options={boars} value={form.watch("fatherId") ?? ""} onChange={(value) => form.setValue("fatherId", value)} />
+        <SearchSelect label="Room" options={pens} value={form.watch("currentPenId") ?? ""} onChange={(value) => form.setValue("currentPenId", value)} />
+        <TextInput label="Notes" type="textarea" registration={form.register("notes")} />
+        <Button type="submit" disabled={pending}>{pending ? "Saving..." : "Add piglet"}</Button>
       </FormCard>
     </form>
   );
@@ -142,11 +241,11 @@ export function ExitForm({ pigRef }: { pigRef: string }) {
   );
 }
 
-export function BreedingForm({ sows, boars }: { sows: SelectOption[]; boars: SelectOption[] }) {
+export function BreedingForm({ sows, boars, presetSowId = "" }: { sows: SelectOption[]; boars: SelectOption[]; presetSowId?: string }) {
   const { form, error, pending, onSubmit } = useRecordForm({
     url: "/api/breeding",
     schema: breedingSchema,
-    defaultValues: { sowId: "", boarId: "", breedingDate: "", method: "NATURAL", notes: "" },
+    defaultValues: { sowId: presetSowId, boarId: "", breedingDate: "", method: "NATURAL", notes: "" },
     successMessage: "Breeding recorded",
     successHref: "/breeding",
   });
@@ -166,11 +265,11 @@ export function BreedingForm({ sows, boars }: { sows: SelectOption[]; boars: Sel
   );
 }
 
-export function LitterForm({ sows, boars, breeding }: { sows: SelectOption[]; boars: SelectOption[]; breeding: SelectOption[] }) {
+export function LitterForm({ sows, boars, breeding, presetMotherId = "" }: { sows: SelectOption[]; boars: SelectOption[]; breeding: SelectOption[]; presetMotherId?: string }) {
   const { form, error, pending, onSubmit } = useRecordForm({
     url: "/api/litters",
     schema: litterSchema,
-    defaultValues: { motherId: "", fatherId: "", breedingId: "", birthDate: "", notes: "" },
+    defaultValues: { motherId: presetMotherId, fatherId: "", breedingId: "", birthDate: "", notes: "" },
     successMessage: "Litter recorded",
     successHref: "/litters",
   });

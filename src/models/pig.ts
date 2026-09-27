@@ -22,7 +22,7 @@ export type PigDoc = {
   qrCode: string;
   sex: PigSex;
   breed: string;
-  dateOfBirth: string;
+  dateOfBirth?: string | null;
   source: PigSource;
   motherId?: Types.ObjectId | null;
   fatherId?: Types.ObjectId | null;
@@ -47,7 +47,7 @@ const pigSchema = new Schema<PigDoc>(
     qrCode: { type: String, required: true, uppercase: true, trim: true },
     sex: { type: String, enum: PIG_SEX, required: true },
     breed: { type: String, required: true, trim: true, maxlength: 80 },
-    dateOfBirth: { type: String, required: true },
+    dateOfBirth: { type: String },
     source: { type: String, enum: PIG_SOURCE, required: true },
     motherId: { type: Schema.Types.ObjectId, ref: "Pig" },
     fatherId: { type: Schema.Types.ObjectId, ref: "Pig" },

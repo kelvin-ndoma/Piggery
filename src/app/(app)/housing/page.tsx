@@ -16,9 +16,10 @@ export default async function HousingPage() {
           <h2 className="font-semibold">{building.code} · {building.name}</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {building.pens.map((pen) => (
-              <article key={pen.id} className="rounded-xl border p-3 text-sm">
+              <article key={pen.id} className="min-w-0 break-words rounded-xl border p-3 text-sm">
                 <p className="font-medium">{pen.code} · {pen.name}</p>
-                <p className="text-stone-500">{labelize(pen.type)} · {pen.occupied}{pen.capacity ? ` / ${pen.capacity}` : ""} pigs</p>
+                <p className="text-stone-500">{labelize(pen.type)} · {pen.occupied}{pen.capacity ? ` / ${pen.capacity}` : ""} pigs{pen.plannedFeedKgPerDay != null ? ` · ${pen.plannedFeedKgPerDay} kg/day planned` : ""}</p>
+                {pen.notes ? <p className="mt-1 text-stone-600">{pen.notes}</p> : null}
               </article>
             ))}
           </div>

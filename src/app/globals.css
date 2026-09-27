@@ -52,10 +52,15 @@
   border-color: var(--border);
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), sans-serif;
+  overflow-x: clip;
 }
 
 input,
@@ -63,4 +68,24 @@ select,
 textarea,
 button {
   font: inherit;
+  max-width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .app-header {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
+
+  .app-main {
+    padding-bottom: calc(7.5rem + env(safe-area-inset-bottom));
+  }
+
+  .app-tabbar {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .app-sheet {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
 }

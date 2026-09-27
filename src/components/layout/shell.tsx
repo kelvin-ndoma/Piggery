@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
 import {
   Bell,
@@ -71,6 +71,15 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState<"more" | "record" | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
   const mobile = [
     links.find((link) => link.href === "/dashboard"),
     links.find((link) => link.href === "/pigs"),
@@ -78,7 +87,7 @@ export function AppShell({
   ].filter((link): link is ShellLink => Boolean(link));
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh overflow-x-clip">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-primary text-primary-foreground md:flex">
         <div className="px-5 py-6">
           <p className="text-xs uppercase tracking-[0.16em] text-emerald-100/80">Piggery</p>
@@ -107,15 +116,15 @@ export function AppShell({
           })}
         </nav>
       </aside>
-      <div className="md:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-[#f7f4ee]/90 px-4 backdrop-blur md:px-8">
-          <div>
-            <p className="text-sm font-semibold md:hidden">{farmName}</p>
-            <p className="text-xs text-stone-500">
+      <div className="min-w-0 max-w-full md:pl-64">
+        <header className="app-header sticky top-0 z-20 flex items-center justify-between gap-2 border-b bg-[#f7f4ee]/95 px-3 py-2 backdrop-blur md:h-16 md:px-8">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold md:hidden">{farmName}</p>
+            <p className="truncate text-xs text-stone-500">
               {userName} · {role.toLowerCase().replaceAll("_", " ")}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5">
             <Link href="/scan" className="inline-flex h-11 w-11 items-center justify-center rounded-xl border bg-white" aria-label="Scan pig">
               <QrCode className="h-4 w-4" />
             </Link>
@@ -138,14 +147,14 @@ export function AppShell({
             Development demo data. Replace it with this farm&apos;s own records.
           </p>
         ) : null}
-        <main className="px-4 py-6 pb-28 md:px-8 md:pb-10">{children}</main>
+        <main className="app-main min-w-0 px-4 py-5 pb-28 md:px-8 md:py-6 md:pb-10">{children}</main>
       </div>
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t bg-white md:hidden">
-        <div className="grid grid-cols-5">
+      <nav className="app-tabbar fixed inset-x-0 bottom-0 z-30 border-t bg-white md:hidden">
+        <div className="grid h-16 grid-cols-5">
           {mobile.slice(0, 2).map((link) => (
             <MobileLink key={link.href} link={link} active={pathname.startsWith(link.href)} />
           ))}
-          <button type="button" className="flex flex-col items-center justify-center py-2 text-primary" onClick={() => setOpen("record")}>
+          <button type="button" className="flex h-full w-full flex-col items-center justify-center text-primary" onClick={() => setOpen("record")}>
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <Plus className="h-5 w-5" />
             </span>
@@ -154,7 +163,7 @@ export function AppShell({
           {mobile.slice(2, 3).map((link) => (
             <MobileLink key={link.href} link={link} active={pathname.startsWith(link.href)} />
           ))}
-          <button type="button" className="flex flex-col items-center justify-center gap-1 py-2 text-xs text-stone-600" onClick={() => setOpen("more")}>
+          <button type="button" className="flex h-full w-full flex-col items-center justify-center gap-1 text-xs text-stone-600" onClick={() => setOpen("more")}>
             <Menu className="h-5 w-5" />
             More
           </button>
@@ -162,7 +171,7 @@ export function AppShell({
       </nav>
       {open ? (
         <div className="fixed inset-0 z-40 bg-stone-950/40 md:hidden" onClick={() => setOpen(null)}>
-          <div className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-3xl bg-white p-4" onClick={(event) => event.stopPropagation()}>
+          <div className="app-sheet absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-3xl bg-white p-4" onClick={(event) => event.stopPropagation()}>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-lg font-semibold">{open === "record" ? "Record" : "More"}</h2>
               <button type="button" className="inline-flex h-11 w-11 items-center justify-center" onClick={() => setOpen(null)} aria-label="Close">
@@ -186,7 +195,7 @@ export function AppShell({
 function MobileLink({ link, active }: { link: ShellLink; active: boolean }) {
   const Icon = ICONS[link.icon];
   return (
-    <Link href={link.href} className={cn("flex flex-col items-center justify-center gap-1 py-2 text-[11px]", active ? "text-primary" : "text-stone-500")}>
+    <Link href={link.href} className={cn("flex h-full flex-col items-center justify-center gap-1 px-1 text-[11px]", active ? "text-primary" : "text-stone-500")}>
       <Icon className="h-5 w-5" />
       {link.label}
     </Link>

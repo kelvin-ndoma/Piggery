@@ -28,9 +28,9 @@ export default async function GrowthPage({ searchParams }: { searchParams: Promi
         <p className="text-sm font-medium">Compare pigs</p>
         <div className="grid max-h-48 grid-cols-2 gap-2 overflow-auto sm:grid-cols-3">
           {pigs.slice(0, 40).map((pig) => (
-            <label key={pig.value} className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="pig" value={pig.label.split(" ")[0]} defaultChecked={selected.includes(pig.label.split(" ")[0] ?? "")} className="h-5 w-5" />
-              {pig.label}
+            <label key={pig.value} className="flex min-w-0 items-start gap-2 text-sm">
+              <input type="checkbox" name="pig" value={pig.label.split(" ")[0]} defaultChecked={selected.includes(pig.label.split(" ")[0] ?? "")} className="mt-0.5 h-5 w-5 shrink-0" />
+              <span className="min-w-0 break-words">{pig.label}</span>
             </label>
           ))}
         </div>

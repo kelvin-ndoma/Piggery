@@ -2,16 +2,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { WeightChart } from "@/components/charts/weight-chart";
-import { DirectWeightForm, ExitForm } from "@/components/forms/herd-forms";
+import { AddPigletForm, DirectWeightForm, EditPigForm, ExitForm } from "@/components/forms/herd-forms";
 import { IncidentStatusForm } from "@/components/forms/health-forms";
 import { RecordTable } from "@/components/record-table";
 import { can } from "@/lib/permissions";
 import { requireFarmContext } from "@/lib/context";
 import { formatDisplayDate } from "@/lib/dates";
 import { formatGain, formatMoney, formatWeight } from "@/lib/format";
-import { labelize } from "@/lib/utils";
+import { labelSex, labelize } from "@/lib/utils";
 import { AppError } from "@/lib/errors";
-import { getPigDetail } from "@/services/pigs";
+import { getPigDetail, housingOptions, pigOptions } from "@/services/pigs";
+import type { SelectOption } from "@/types/api";
 
 const TABS = ["overview", "growth", "health", "vaccinations", "feeding", "movement", "breeding", "family", "timeline"] as const;
 
@@ -34,6 +35,18 @@ export default async function PigPage({
     throw error;
   }
   const { pig } = detail;
+  const canEdit = can(ctx.role, "pigs:write");
+  const needsChoices = canEdit && (tab === "overview" || (tab === "family" && pig.sex === "FEMALE"));
+  let females: SelectOption[] = [];
+  let males: SelectOption[] = [];
+  let pens: SelectOption[] = [];
+  if (needsChoices) {
+    [females, males, pens] = await Promise.all([
+      pigOptions(ctx, { status: "ACTIVE", sex: "FEMALE" }),
+      pigOptions(ctx, { status: "ACTIVE", sex: "MALE" }),
+      housingOptions(ctx),
+    ]);
+  }
   const quick = [
     can(ctx.role, "weights:write") ? { href: `/actions/weight?pig=${pig.id}`, label: "Record weight" } : null,
     can(ctx.role, "health:write") ? { href: `/actions/vaccinate?pig=${pig.id}`, label: "Vaccinate" } : null,
@@ -50,8 +63,8 @@ export default async function PigPage({
         <h1 className="text-3xl font-semibold tracking-tight">{pig.pigId}</h1>
         <Badge value={pig.status} />
       </div>
-      <dl className="mt-4 grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
-        <Meta label="Sex" value={labelize(pig.sex)} />
+      <dl className="mt-4 grid grid-cols-2 gap-2 text-sm sm:gap-3 md:grid-cols-4">
+        <Meta label="Sex" value={labelSex(pig.sex)} />
         <Meta label="Breed" value={pig.breed} />
         <Meta label="Age" value={pig.ageLabel} />
         <Meta label="Weight" value={formatWeight(pig.weightKg, ctx.farm.settings.weightUnit)} />
@@ -60,16 +73,16 @@ export default async function PigPage({
         <Meta label="Daily gain" value={formatGain(pig.adgKg)} />
         <Meta label="Born" value={formatDisplayDate(pig.dateOfBirth)} />
       </dl>
-      <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
+      <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {quick.map((item) => (
           <Link key={item.label} href={item.href} className="inline-flex h-11 shrink-0 items-center rounded-xl bg-primary px-3 text-sm text-primary-foreground">
             {item.label}
           </Link>
         ))}
       </div>
-      <div className="mt-4 flex gap-2 overflow-x-auto border-b">
+      <div className="-mx-4 mt-2 flex gap-1 overflow-x-auto border-b px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {TABS.map((item) => (
-          <Link key={item} href={`/pigs/${pig.pigId}?tab=${item}`} className={`shrink-0 border-b-2 px-3 py-2 text-sm capitalize ${tab === item ? "border-primary text-primary" : "border-transparent text-stone-500"}`}>
+          <Link key={item} href={`/pigs/${pig.pigId}?tab=${item}`} className={`inline-flex h-11 shrink-0 items-center border-b-2 px-3 text-sm capitalize ${tab === item ? "border-primary text-primary" : "border-transparent text-stone-500"}`}>
             {item}
           </Link>
         ))}
@@ -80,8 +93,26 @@ export default async function PigPage({
             <Info title="Identity" lines={[`Ear tag: ${pig.earTag ?? "—"}`, `Source: ${labelize(pig.source)}`, pig.litterNumber ? `Litter: ${pig.litterNumber}` : "No litter link", pig.notes || "No notes"]} />
             <Info title="Parents" lines={[`Mother: ${pig.mother?.pigId ?? "—"}`, `Father: ${pig.father?.pigId ?? "—"}`]} />
             {pig.acquisition ? <Info title="Acquisition" lines={[pig.acquisition.date ?? "", pig.acquisition.supplier ?? "", pig.acquisition.price != null ? formatMoney(pig.acquisition.price, ctx.farm.settings.currency) : ""].filter(Boolean)} /> : null}
-            {can(ctx.role, "pigs:write") && pig.status === "ACTIVE" ? <ExitForm pigRef={pig.id} /> : null}
+            {canEdit && pig.status === "ACTIVE" ? <ExitForm pigRef={pig.id} /> : null}
           </div>
+        ) : null}
+        {tab === "overview" && canEdit ? (
+          <EditPigForm
+            pigRef={pig.id}
+            females={females.filter((item) => item.value !== pig.id)}
+            males={males.filter((item) => item.value !== pig.id)}
+            values={{
+              earTag: pig.earTag ?? "",
+              sex: pig.sex,
+              breed: pig.breed,
+              dateOfBirth: pig.dateOfBirth ?? "",
+              source: pig.source,
+              category: pig.category,
+              notes: pig.notes,
+              motherId: pig.mother?.id ?? "",
+              fatherId: pig.father?.id ?? "",
+            }}
+          />
         ) : null}
         {tab === "growth" ? (
           <>
@@ -122,21 +153,34 @@ export default async function PigPage({
           <RecordTable columns={[{ key: "date", label: "Date" }, { key: "from", label: "From" }, { key: "to", label: "To" }, { key: "reason", label: "Reason" }]} rows={detail.movements.map((item) => ({ id: item.id, cells: { date: formatDisplayDate(item.date), from: item.fromLabel, to: item.toLabel, reason: labelize(item.reason) } }))} empty={{ title: "No movements yet." }} />
         ) : null}
         {tab === "breeding" ? (
-          <RecordTable columns={[{ key: "date", label: "Date" }, { key: "role", label: "Role" }, { key: "partner", label: "Partner" }, { key: "status", label: "Status" }, { key: "due", label: "Expected farrow" }]} rows={detail.breeding.map((item) => ({ id: item.id, cells: { date: formatDisplayDate(item.date), role: item.role, partner: item.partner, status: <Badge value={item.status} />, due: formatDisplayDate(item.expectedFarrowDate) } }))} empty={{ title: "No breeding records for this pig." }} />
+          <>
+            <RecordTable columns={[{ key: "date", label: "Date" }, { key: "role", label: "Role" }, { key: "partner", label: "Partner" }, { key: "status", label: "Status" }, { key: "due", label: "Expected farrow" }]} rows={detail.breeding.map((item) => ({ id: item.id, cells: { date: formatDisplayDate(item.date), role: item.role, partner: item.partner, status: <Badge value={item.status} />, due: formatDisplayDate(item.expectedFarrowDate) } }))} empty={{ title: "No breeding records for this pig.", action: pig.sex === "FEMALE" && can(ctx.role, "breeding:write") ? { href: `/actions/breeding?sow=${pig.id}`, label: "Record breeding" } : undefined }} />
+            {pig.sex === "FEMALE" && can(ctx.role, "breeding:write") && detail.breeding.length > 0 ? <Link className="inline-flex h-11 items-center text-sm font-medium text-primary" href={`/actions/breeding?sow=${pig.id}`}>Record breeding</Link> : null}
+          </>
         ) : null}
         {tab === "family" ? (
-          <RecordTable columns={[{ key: "pig", label: "Pig" }, { key: "sex", label: "Sex" }, { key: "born", label: "Born" }, { key: "status", label: "Status" }]} rows={detail.offspring.map((child) => ({ id: child.id, cells: { pig: <Link className="text-primary" href={`/pigs/${child.pigId}`}>{child.pigId}</Link>, sex: labelize(child.sex), born: formatDisplayDate(child.dateOfBirth), status: <Badge value={child.status} /> } }))} empty={{ title: "No offspring recorded." }} />
+          <>
+            <RecordTable columns={[{ key: "pig", label: "Pig" }, { key: "sex", label: "Sex" }, { key: "born", label: "Born" }, { key: "status", label: "Status" }]} rows={detail.offspring.map((child) => ({ id: child.id, cells: { pig: <Link className="text-primary" href={`/pigs/${child.pigId}`}>{child.pigId}</Link>, sex: labelSex(child.sex), born: formatDisplayDate(child.dateOfBirth), status: <Badge value={child.status} /> } }))} empty={{ title: "No offspring recorded." }} />
+            {pig.sex === "FEMALE" && canEdit ? (
+              <AddPigletForm motherId={pig.id} breed={pig.breed} penId={pig.penId ?? ""} boars={males} pens={pens} />
+            ) : null}
+            {pig.sex === "FEMALE" && can(ctx.role, "breeding:write") ? <Link className="inline-flex h-11 items-center text-sm font-medium text-primary" href={`/actions/birth?sow=${pig.id}`}>Record a full litter</Link> : null}
+          </>
         ) : null}
         {tab === "timeline" ? (
-          <ol className="space-y-3">
-            {detail.timeline.map((event) => (
-              <li key={event.id} className="rounded-2xl border bg-white p-4">
-                <p className="text-xs text-stone-500">{formatDisplayDate(event.date)}</p>
-                <p className="font-medium">{event.title}</p>
-                {event.detail ? <p className="text-sm text-stone-600">{event.detail}</p> : null}
-              </li>
-            ))}
-          </ol>
+          detail.timeline.length === 0 ? (
+            <p className="rounded-2xl border bg-white p-4 text-sm text-stone-600">No events recorded yet.</p>
+          ) : (
+            <ol className="space-y-3">
+              {detail.timeline.map((event) => (
+                <li key={event.id} className="rounded-2xl border bg-white p-4">
+                  <p className="text-xs text-stone-500">{formatDisplayDate(event.date)}</p>
+                  <p className="font-medium">{event.title}</p>
+                  {event.detail ? <p className="text-sm text-stone-600">{event.detail}</p> : null}
+                </li>
+              ))}
+            </ol>
+          )
         ) : null}
         {can(ctx.role, "finance:read") && detail.sales.length > 0 ? (
           <p className="text-sm text-stone-500">Sale: {detail.sales.map((sale) => `${formatDisplayDate(sale.date)} · ${sale.buyerName} · ${formatMoney(sale.amount, ctx.farm.settings.currency)}`).join("; ")}</p>
@@ -150,7 +194,7 @@ function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border bg-white p-3">
       <dt className="text-xs text-stone-500">{label}</dt>
-      <dd className="mt-1 font-medium">{value}</dd>
+      <dd className="mt-1 break-words font-medium">{value}</dd>
     </div>
   );
 }
@@ -159,7 +203,7 @@ function Info({ title, lines }: { title: string; lines: string[] }) {
   return (
     <section className="rounded-2xl border bg-white p-4">
       <h2 className="font-medium">{title}</h2>
-      <ul className="mt-2 space-y-1 text-sm text-stone-700">{lines.map((line) => <li key={line}>{line}</li>)}</ul>
+      <ul className="mt-2 space-y-1 break-words text-sm text-stone-700">{lines.map((line, index) => <li key={`${index}-${line}`}>{line}</li>)}</ul>
     </section>
   );
 }

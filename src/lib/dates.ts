@@ -46,7 +46,8 @@ export function isValidCurrency(currency: string): boolean {
   }
 }
 
-export function formatDisplayDate(isoDate: string): string {
+export function formatDisplayDate(isoDate: string | null | undefined): string {
+  if (!isoDate) return "Not recorded";
   const [year, month, day] = isoDate.split("-").map(Number);
   if (!year || !month || !day) return isoDate;
   return new Intl.DateTimeFormat("en-GB", {
@@ -57,15 +58,18 @@ export function formatDisplayDate(isoDate: string): string {
   }).format(new Date(Date.UTC(year, month - 1, day)));
 }
 
-export function formatAge(dateOfBirth: string, today: string): string {
+export function formatAge(dateOfBirth: string | null | undefined, today: string): string {
+  if (!dateOfBirth) return "Not recorded";
   const days = daysBetween(dateOfBirth, today);
   if (days < 0) return "Unknown age";
   if (days < 14) return days === 1 ? "1 day" : `${days} days`;
-  const weeks = Math.floor(days / 7);
-  const extra = days % 7;
-  if (weeks < 16) return extra === 0 ? `${weeks} wk` : `${weeks} wk ${extra} d`;
-  const months = Math.floor(days / 30.4375);
-  return months === 1 ? "1 month" : `${months} months`;
+  if (days < 42) {
+    const weeks = Math.floor(days / 7);
+    const extra = days % 7;
+    return extra === 0 ? `${weeks} wk` : `${weeks} wk ${extra} d`;
+  }
+  const halfMonths = Math.round((days / 30.4375) * 2) / 2;
+  return halfMonths === 1 ? "1 month" : `${halfMonths} months`;
 }
 
 export function defaultRange(today: string): { from: string; to: string } {

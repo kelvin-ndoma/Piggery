@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import bcrypt from "bcryptjs";
 import mongoose, { type Types } from "mongoose";
-import { addDays, monthBounds, todayInTimeZone } from "../src/lib/dates";
-import type { PigCategory, PigSex, PigStatus } from "../src/types/domain";
+import { addDays } from "../src/lib/dates";
+import type { PigCategory, PigSex } from "../src/types/domain";
 import {
   Breeding,
   Building,
@@ -51,16 +51,14 @@ async function main() {
   }
   if (existing) await wipe(existing._id);
 
-  const today = todayInTimeZone("Africa/Nairobi");
-  const month = monthBounds(today);
-  const birthDate = month.from === today ? today : addDays(month.from, Math.min(2, Math.max(0, days(month.from, today))));
   const farm = await Farm.create({
     name: "Anthony Pig Farm",
     slug: SLUG,
     country: "Kenya",
-    locationNote: "Development demo farm. Replace this with the real farm location.",
+    locationNote:
+      "25 Sep 2026 stock sheet. Room count is 68: 6 sows, 1 boar, 51 growers and 10 piglets. A handwritten report said 57 pigs + 10 piglets. Expected farrowing is 23 Oct 2026, 23 piglets; the sow is not identified yet.",
     phone: "+254700000000",
-    demoSeed: true,
+    demoSeed: false,
     settings: {
       timezone: "Africa/Nairobi",
       currency: "KES",
@@ -73,7 +71,7 @@ async function main() {
   });
 
   const passwordHash = await bcrypt.hash(PASSWORD, 12);
-  const owner = await User.create({
+  await User.create({
     name: "Anthony",
     email: "anthony@test.com",
     passwordHash,
@@ -100,198 +98,148 @@ async function main() {
     ),
   );
 
-  const farrowing = await Building.create({ farmId: farm._id, name: "Farrowing house", code: "FH" });
-  const growerHouse = await Building.create({ farmId: farm._id, name: "Grower house", code: "GH" });
-  const finisherHouse = await Building.create({ farmId: farm._id, name: "Finisher house", code: "NH" });
-  const [farrowPen, sowPen, boarPen, growerPen, finisherPen] = await Pen.create([
-    { farmId: farm._id, buildingId: farrowing._id, name: "Farrowing 1", code: "FH-01", type: "FARROWING", capacity: 2 },
-    { farmId: farm._id, buildingId: farrowing._id, name: "Sow pen", code: "SOW-01", type: "SOW", capacity: 8 },
-    { farmId: farm._id, buildingId: farrowing._id, name: "Boar pen", code: "BOAR-01", type: "BOAR", capacity: 2 },
-    { farmId: farm._id, buildingId: growerHouse._id, name: "Grower 1", code: "GH-01", type: "GROWER", capacity: 20 },
-    { farmId: farm._id, buildingId: finisherHouse._id, name: "Finisher 1", code: "NH-01", type: "FINISHER", capacity: 20 },
-  ]);
-  if (!farrowPen || !sowPen || !boarPen || !growerPen || !finisherPen) throw new Error("Pens were not created");
-
-  const boar = await pig({ pigId: "PIG-0001", sex: "MALE", breed: "Duroc", category: "BOAR", pen: boarPen._id, dob: addDays(today, -500) });
-  const pregnant = await pig({ pigId: "PIG-0002", sex: "FEMALE", breed: "Large White", category: "SOW", pen: sowPen._id, dob: addDays(today, -600) });
-  const mother = await pig({ pigId: "PIG-0003", sex: "FEMALE", breed: "Landrace", category: "SOW", pen: farrowPen._id, dob: addDays(today, -700) });
-  await pig({ pigId: "PIG-0004", sex: "FEMALE", breed: "Large White", category: "SOW", pen: sowPen._id, dob: addDays(today, -550) });
-  const sick = await pig({ pigId: "PIG-0020", sex: "MALE", breed: "Large White", category: "GROWER", pen: growerPen._id, dob: addDays(today, -90) });
-  const weighed = await pig({ pigId: "PIG-0021", sex: "FEMALE", breed: "Landrace", category: "GROWER", pen: growerPen._id, dob: addDays(today, -100) });
-  await pig({ pigId: "PIG-0030", sex: "MALE", breed: "Duroc", category: "FINISHER", pen: finisherPen._id, dob: addDays(today, -160) });
-  const dead = await pig({ pigId: "PIG-0090", sex: "MALE", breed: "Large White", category: "GROWER", pen: growerPen._id, dob: addDays(today, -80), status: "DEAD" });
-  const sold = await pig({ pigId: "PIG-0091", sex: "FEMALE", breed: "Landrace", category: "FINISHER", pen: finisherPen._id, dob: addDays(today, -170), status: "SOLD" });
-
-  const litter = await Litter.create({
+  const asOf = "2026-09-25";
+  const olderRooms = await Building.create({
     farmId: farm._id,
-    litterNumber: `L-${birthDate.slice(0, 4)}-001`,
-    motherId: mother._id,
-    fatherId: boar._id,
-    birthDate,
-    bornAlive: 8,
-    stillborn: 1,
-    male: 4,
-    female: 4,
-    currentlyAlive: 8,
-    notes: "Development demo litter.",
+    name: "Rooms 1–9",
+    code: "R19",
+    notes: "Rooms listed on the 25 September 2026 stock sheet.",
   });
-  for (let index = 0; index < 8; index += 1) {
-    const sex = index < 4 ? "MALE" : "FEMALE";
-    const child = await pig({
-      pigId: `PIG-${String(10 + index).padStart(4, "0")}`,
-      sex,
-      breed: "Landrace",
-      category: "PIGLET",
-      pen: farrowPen._id,
-      dob: birthDate,
-      motherId: mother._id,
-      fatherId: boar._id,
-      litterId: litter._id,
-    });
-    await PigBirth.create({ farmId: farm._id, litterId: litter._id, pigId: child._id, sex, birthWeightKg: 1.4 });
-  }
-
-  await Breeding.create({
+  const newerRooms = await Building.create({
     farmId: farm._id,
-    sowId: pregnant._id,
-    boarId: boar._id,
-    breedingDate: addDays(today, -100),
-    method: "NATURAL",
-    status: "CONFIRMED_PREGNANT",
-    pregnancyConfirmedOn: addDays(today, -70),
-    expectedFarrowDate: addDays(today, 14),
-    statusHistory: [{ status: "CONFIRMED_PREGNANT", at: addDays(today, -70), userId: owner._id, note: "Development demo record." }],
-    recordedById: owner._id,
-    recordedByName: owner.name,
-    notes: "Development demo breeding. Not a veterinary instruction.",
+    name: "Rooms A–D",
+    code: "RAD",
+    notes: "Newer rooms listed on the 25 September 2026 stock sheet.",
   });
-
-  const weightDates = [addDays(today, -28), addDays(today, -14), today];
-  const weightValues = [32, 38, 44];
-  for (let index = 0; index < weightDates.length; index += 1) {
-    await PigWeight.create({
+  const roomPlan = [
+    { code: "1", name: "Room 1", type: "FARROWING" as const, capacity: 11, feed: 6, notes: "Mother and 10 piglets. Litter details were blank.", buildingId: olderRooms._id },
+    { code: "2", name: "Room 2", type: "SOW" as const, capacity: 1, feed: 3, notes: "One mother. Sow ID was blank on the sheet.", buildingId: olderRooms._id },
+    { code: "3", name: "Room 3", type: "SOW" as const, capacity: 2, feed: 6, notes: "Two mothers. Both sow IDs were blank on the sheet.", buildingId: olderRooms._id },
+    { code: "4", name: "Room 4", type: "MIXED" as const, capacity: 2, feed: 6, notes: "One mother and the boar. IDs were blank on the sheet.", buildingId: olderRooms._id },
+    { code: "5", name: "Room 5", type: "GROWER" as const, capacity: 5, feed: 2.8, notes: "5 growers, about 4.5 months. Batch IDs were blank.", buildingId: olderRooms._id },
+    { code: "6", name: "Room 6", type: "GROWER" as const, capacity: 7, feed: 1.2, notes: "7 growers, about 2.5 months. Batch IDs were blank.", buildingId: olderRooms._id },
+    { code: "7", name: "Room 7", type: "GROWER" as const, capacity: 10, feed: 2.7, notes: "10 growers, about 5 months. Batch IDs were blank.", buildingId: olderRooms._id },
+    { code: "8", name: "Room 8", type: "SOW" as const, capacity: 1, feed: 3, notes: "One mother. Sow ID was blank on the sheet.", buildingId: olderRooms._id },
+    { code: "9", name: "Room 9", type: "GROWER" as const, capacity: 11, feed: 2.9, notes: "11 growers, about 5 months. Batch IDs were blank.", buildingId: olderRooms._id },
+    { code: "A", name: "Room A", type: "GROWER" as const, capacity: 6, feed: 0.8, notes: "6 growers, about 1.5 months. Batch IDs were blank.", buildingId: newerRooms._id },
+    { code: "B", name: "Room B", type: "GROWER" as const, capacity: 1, feed: 3, notes: "1 grower. Age was blank. Confirm age and weight.", buildingId: newerRooms._id },
+    { code: "C", name: "Room C", type: "GROWER" as const, capacity: 6, feed: 2, notes: "6 growers, about 3 months. Batch IDs were blank.", buildingId: newerRooms._id },
+    { code: "D", name: "Room D", type: "GROWER" as const, capacity: 5, feed: 2, notes: "5 growers, about 3 months. Batch IDs were blank.", buildingId: newerRooms._id },
+  ];
+  const pens = await Pen.create(
+    roomPlan.map((room) => ({
       farmId: farm._id,
-      pigId: weighed._id,
-      date: weightDates[index],
-      weightKg: weightValues[index],
-      notes: "Development demo weight.",
-      recordedById: owner._id,
-      recordedByName: owner.name,
+      buildingId: room.buildingId,
+      name: room.name,
+      code: room.code,
+      type: room.type,
+      capacity: room.capacity,
+      plannedFeedKgPerDay: room.feed,
+      notes: room.notes,
+    })),
+  );
+  const penByCode = new Map(pens.map((pen) => [pen.code, pen]));
+  const penId = (code: string) => {
+    const pen = penByCode.get(code);
+    if (!pen) throw new Error(`Room ${code} was not created`);
+    return pen._id;
+  };
+
+  const sheetNote = "Taken from the pig farm stock sheet dated 25 September 2026. Breed was not recorded.";
+  const sowRooms = [
+    ["S01", "1"],
+    ["S02", "2"],
+    ["S03", "3"],
+    ["S04", "3"],
+    ["S05", "4"],
+    ["S06", "8"],
+  ] as const;
+  const sows = new Map<string, Awaited<ReturnType<typeof pig>>>();
+  for (const [pigId, room] of sowRooms) {
+    sows.set(
+      pigId,
+      await pig({
+        pigId,
+        sex: "FEMALE",
+        category: "SOW",
+        pen: penId(room),
+        notes: `${sheetNote} Mother in Room ${room}. Age and parity were blank.`,
+      }),
+    );
+  }
+  const mother = sows.get("S01");
+  if (!mother) throw new Error("S01 was not created");
+  await pig({
+    pigId: "B01",
+    sex: "MALE",
+    category: "BOAR",
+    pen: penId("4"),
+    notes: `${sheetNote} Boar in Room 4 with one mother. Age was blank.`,
+  });
+  for (let index = 1; index <= 10; index += 1) {
+    await pig({
+      pigId: `S01-${String(index).padStart(2, "0")}`,
+      sex: "UNKNOWN",
+      category: "PIGLET",
+      pen: penId("1"),
+      motherId: mother._id,
+      notes: `${sheetNote} One of 10 piglets with S01 in Room 1. Birth date, sex, birth weight and litter totals were blank.`,
     });
   }
-  weighed.currentStats = { weightKg: 44, weighedOn: today, adgKg: 0.429, weightCount: 3 };
-  await weighed.save();
 
-  const vaccine = await Vaccine.create({
-    farmId: farm._id,
-    name: "Demo vaccine — replace with your product",
-    notes: "Development demo record, not a veterinary protocol.",
-    defaultIntervalDays: 30,
-  });
-  await Vaccination.create({
-    farmId: farm._id,
-    pigId: sick._id,
-    vaccineId: vaccine._id,
-    date: addDays(today, -32),
-    dose: "Recorded dose",
-    batchNumber: "DEMO-BATCH",
-    nextDueDate: addDays(today, -2),
-    administeredById: owner._id,
-    administeredByName: owner.name,
-    notes: "Development demo vaccination.",
-  });
-  await HealthIncident.create({
-    farmId: farm._id,
-    pigId: sick._id,
-    date: addDays(today, -1),
-    severity: "MEDIUM",
-    status: "OPEN",
-    symptoms: "Development demo observation — reduced appetite.",
-    statusHistory: [{ status: "OPEN", at: addDays(today, -1), userId: owner._id }],
-    recordedById: owner._id,
-    recordedByName: owner.name,
-  });
-  await Mortality.create({
-    farmId: farm._id,
-    pigId: dead._id,
-    date: addDays(today, -10),
-    ageDays: 70,
-    suspectedCause: "Development demo record",
-    recordedById: owner._id,
-    recordedByName: owner.name,
-    notes: "Development demo mortality. The pig remains in the herd history.",
-  });
+  const batches = [
+    { room: "5", count: 5, months: 4.5 },
+    { room: "6", count: 7, months: 2.5 },
+    { room: "7", count: 10, months: 5 },
+    { room: "9", count: 11, months: 5 },
+    { room: "A", count: 6, months: 1.5 },
+    { room: "B", count: 1, months: null },
+    { room: "C", count: 6, months: 3 },
+    { room: "D", count: 5, months: 3 },
+  ];
+  let growerNumber = 1;
+  for (const batch of batches) {
+    const dob = batch.months === null ? undefined : addDays(asOf, -Math.round(batch.months * 30.4375));
+    for (let index = 0; index < batch.count; index += 1) {
+      const pigId = `G${String(growerNumber).padStart(2, "0")}`;
+      growerNumber += 1;
+      const ageNote =
+        batch.months === null
+          ? "Age was blank. Confirm age and weight."
+          : `Age was recorded as about ${batch.months} months on 25 September 2026, so the birth date is approximate.`;
+      await pig({
+        pigId,
+        sex: "UNKNOWN",
+        category: "GROWER",
+        pen: penId(batch.room),
+        dob,
+        notes: `${sheetNote} Grower in Room ${batch.room}. ${ageNote} Sex and weight were blank.`,
+      });
+    }
+  }
 
-  const growerFeed = await FeedType.create({ farmId: farm._id, name: "Demo grower feed", category: "GROWER", costPerKg: 80, reorderLevelKg: 50 });
-  const starter = await FeedType.create({ farmId: farm._id, name: "Demo starter feed", category: "STARTER", costPerKg: 95, reorderLevelKg: 40 });
-  await FeedInventory.create([
-    { farmId: farm._id, feedTypeId: growerFeed._id, quantityKg: 2 },
-    { farmId: farm._id, feedTypeId: starter._id, quantityKg: 180 },
-  ]);
-  await FeedRecord.create([
-    { farmId: farm._id, date: addDays(today, -3), feedTypeId: growerFeed._id, kind: "PURCHASE", quantityKg: 100, costPerKg: 80, totalCost: 8000, recordedById: owner._id, recordedByName: owner.name, notes: "Development demo purchase." },
-    { farmId: farm._id, date: addDays(today, -1), feedTypeId: growerFeed._id, penId: growerPen._id, kind: "CONSUMPTION", quantityKg: 80, costPerKg: 80, totalCost: 6400, recordedById: owner._id, recordedByName: owner.name, notes: "Development demo consumption." },
-    { farmId: farm._id, date: today, feedTypeId: growerFeed._id, penId: growerPen._id, kind: "CONSUMPTION", quantityKg: 18, costPerKg: 80, totalCost: 1440, recordedById: owner._id, recordedByName: owner.name, notes: "Development demo consumption." },
-  ]);
-
-  await Sale.create({
-    farmId: farm._id,
-    date: today,
-    buyerName: "Demo buyer",
-    items: [{ pigId: sold._id, pigCode: sold.pigId, weightKg: 90, price: 18000 }],
-    totalAmount: 18000,
-    currency: "KES",
-    notes: "Development demo sale.",
-    recordedById: owner._id,
-    recordedByName: owner.name,
-  });
-  await Expense.create({
-    farmId: farm._id,
-    date: today,
-    category: "FEED",
-    amount: 8000,
-    currency: "KES",
-    description: "Development demo feed purchase",
-    recordedById: owner._id,
-    recordedByName: owner.name,
-  });
-
-  const visit = await FarmVisit.create({
-    farmId: farm._id,
-    visitNumber: `V-${today.slice(0, 4)}-001`,
-    date: today,
-    farmerName: "Anthony",
-    populationSummary: "Development demo visit. Counts were entered for the seed and should be replaced.",
-    housing: { rating: "GOOD", notes: "Development demo observation." },
-    health: { rating: "FAIR", notes: "Development demo observation." },
-    water: { rating: "GOOD", notes: "Development demo observation." },
-    feeding: { rating: "GOOD", notes: "Development demo observation." },
-    feedQuality: { rating: "NEEDS_ATTENTION", notes: "Development demo observation." },
-    visitingOfficer: "Demo officer",
-    nextVisitDate: addDays(today, 14),
-  });
-  await FarmRecommendation.create({
-    farmId: farm._id,
-    visitId: visit._id,
-    text: "Development demo recommendation. Replace with the officer's own note.",
-    priority: "MEDIUM",
-    status: "OPEN",
-    assignedUserId: owner._id,
-    dueDate: addDays(today, 7),
-  });
   await Notification.create({
     farmId: farm._id,
     audience: ["OWNER", "FARM_MANAGER", "FARM_WORKER", "VET", "VIEWER"],
-    type: "LOW_STOCK",
-    title: "Demo grower feed is low",
-    body: "Development demo alert.",
-    href: "/feed",
-    dedupeKey: "seed-low-stock",
+    type: "FARROWING",
+    title: "Expected farrowing 23 October 2026",
+    body: "23 piglets are expected. The sow, mating date, parity and litter size were blank on the 25 September 2026 sheet.",
+    href: "/breeding",
+    dedupeKey: "stock-expected-farrow-2026-10-23",
     readBy: [],
   });
-  await Counter.create({ farmId: farm._id, key: "pig", seq: 91 });
+  await Notification.create({
+    farmId: farm._id,
+    audience: ["OWNER", "FARM_MANAGER"],
+    type: "STOCK_COUNT",
+    title: "Confirm the 25 September pig count",
+    body: "The room-by-room count is 68. The handwritten report said 57 pigs + 10 piglets. Count the rooms before treating either figure as final.",
+    href: "/housing",
+    dedupeKey: "stock-reconcile-2026-09-25",
+    readBy: [],
+  });
 
-  console.log("Seeded Anthony Pig Farm as development demo data.");
+  console.log("Loaded the 25 September 2026 stock sheet: 68 pigs.");
   console.log("Password for every demo account: FarmDemo123!");
   console.log("anthony@test.com");
   console.log("manager@demo.piggery.test");
@@ -302,37 +250,28 @@ async function main() {
   function pig(input: {
     pigId: string;
     sex: PigSex;
-    breed: string;
     category: PigCategory;
     pen: Types.ObjectId;
-    dob: string;
-    status?: PigStatus;
+    dob?: string;
+    notes: string;
     motherId?: Types.ObjectId;
-    fatherId?: Types.ObjectId;
-    litterId?: Types.ObjectId;
   }) {
     return Pig.create({
       farmId: farm._id,
       pigId: input.pigId,
       qrCode: input.pigId,
       sex: input.sex,
-      breed: input.breed,
+      breed: "Not recorded",
       dateOfBirth: input.dob,
-      source: input.litterId ? "BORN_ON_FARM" : "PURCHASED",
+      source: "UNKNOWN",
       category: input.category,
-      status: input.status ?? "ACTIVE",
+      status: "ACTIVE",
       currentPenId: input.pen,
       motherId: input.motherId,
-      fatherId: input.fatherId,
-      litterId: input.litterId,
       currentStats: { weightKg: null, weighedOn: null, adgKg: null, weightCount: 0 },
-      notes: "Development demo pig.",
+      notes: input.notes,
     });
   }
-}
-
-function days(start: string, end: string) {
-  return Math.round((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86_400_000);
 }
 
 async function wipe(farmId: Types.ObjectId) {
@@ -369,7 +308,11 @@ function loadEnv() {
       const match = line.match(/^([A-Z0-9_]+)=(.*)$/);
       if (!match) continue;
       const [, key, raw] = match;
-      if (key && process.env[key] === undefined) process.env[key] = raw.replace(/^"|"$/g, "");
+      if (!key || process.env[key] !== undefined) continue;
+      const trimmed = raw.trim();
+      const quoted =
+        (trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"));
+      process.env[key] = quoted ? trimmed.slice(1, -1) : trimmed;
     }
   } catch {
     console.error("Create .env before seeding.");

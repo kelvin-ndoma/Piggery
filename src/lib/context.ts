@@ -100,7 +100,12 @@ export async function requireFarmContext(): Promise<FarmContext> {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
   const context = await getOptionalFarmContext();
-  if (!context) redirect("/no-access");
+  if (!context) {
+    await connectDB();
+    const existing = await User.findById(session.user.id).select("_id");
+    if (!existing) redirect("/api/session/reset");
+    redirect("/no-access");
+  }
   return context;
 }
 

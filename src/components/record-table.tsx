@@ -38,16 +38,24 @@ export function RecordTable({
         </table>
       </div>
       <div className="space-y-3 md:hidden">
-        {rows.map((row) => (
-          <article key={row.id} className="rounded-2xl border bg-white p-4 shadow-sm">
-            {columns.map((column) => (
-              <div key={column.key} className="flex items-start justify-between gap-4 py-1.5 text-sm">
-                <span className="text-stone-500">{column.label}</span>
-                <span className="text-right font-medium">{row.cells[column.key]}</span>
-              </div>
-            ))}
-          </article>
-        ))}
+        {rows.map((row) => {
+          const [lead, ...rest] = columns;
+          return (
+            <article key={row.id} className="rounded-2xl border bg-white p-4 shadow-sm">
+              {lead ? <div className="min-w-0 break-words text-base">{row.cells[lead.key]}</div> : null}
+              {rest.length > 0 ? (
+                <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2">
+                  {rest.map((column) => (
+                    <div key={column.key} className="min-w-0">
+                      <dt className="text-xs text-stone-500">{column.label}</dt>
+                      <dd className="break-words text-sm font-medium">{row.cells[column.key]}</dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : null}
+            </article>
+          );
+        })}
       </div>
     </>
   );

@@ -35,7 +35,7 @@ export type PigListItem = {
   earTag: string | null;
   sex: PigSex;
   breed: string;
-  dateOfBirth: string;
+  dateOfBirth: string | null;
   ageLabel: string;
   source: PigSource;
   category: PigCategory;
@@ -58,7 +58,7 @@ function toListItem(
     earTag?: string | null;
     sex: PigSex;
     breed: string;
-    dateOfBirth: string;
+    dateOfBirth?: string | null;
     source: PigSource;
     category: PigCategory;
     status: PigStatus;
@@ -75,7 +75,7 @@ function toListItem(
     earTag: pig.earTag || null,
     sex: pig.sex,
     breed: pig.breed,
-    dateOfBirth: pig.dateOfBirth,
+    dateOfBirth: pig.dateOfBirth ?? null,
     ageLabel: formatAge(pig.dateOfBirth, currentDay),
     source: pig.source,
     category: pig.category,
@@ -103,7 +103,7 @@ export async function listPigs(
     filter.$or = [{ pigId: pattern }, { earTag: pattern }, { breed: pattern }];
   }
   const page = query.page ?? 1;
-  const limit = 40;
+  const limit = 100;
   const [pigs, total] = await Promise.all([
     Pig.find(filter)
       .sort({ status: 1, pigId: 1 })
@@ -134,7 +134,7 @@ export async function pigOptions(ctx: FarmContext, filter: { status?: PigStatus;
     value: String(pig._id),
     label: pig.earTag ? `${pig.pigId} · ${pig.earTag}` : pig.pigId,
     keywords: `${pig.pigId} ${pig.earTag ?? ""} ${pig.breed} ${pig.category}`,
-    description: `${pig.sex === "FEMALE" ? "Female" : "Male"} · ${pig.category} · ${pig.status}`,
+    description: `${pig.sex === "FEMALE" ? "Female" : pig.sex === "MALE" ? "Male" : "Sex not recorded"} · ${pig.category} · ${pig.status}`,
   }));
 }
 
@@ -153,14 +153,14 @@ async function assertRelative(ctx: FarmContext, id: string | undefined, sex: Pig
 export async function createPig(ctx: FarmContext, input: CreatePigInput) {
   const farmId = farmOid(ctx);
   const currentDay = today(ctx);
-  assertNotFuture(input.dateOfBirth, currentDay, "Date of birth");
+  if (input.dateOfBirth) assertNotFuture(input.dateOfBirth, currentDay, "Date of birth");
   const motherId = await assertRelative(ctx, input.motherId, "FEMALE", "mother");
   const fatherId = await assertRelative(ctx, input.fatherId, "MALE", "father");
   if (motherId && fatherId && motherId.equals(fatherId)) {
     throw new AppError("VALIDATION_ERROR", "The mother and father must be different pigs.", 400);
   }
   const pen = input.currentPenId ? await requirePen(ctx, input.currentPenId) : null;
-  if (pen) await assertPenCapacity(ctx, pen, 1, false);
+  if (pen) await assertPenCapacity(ctx, pen, 1, Boolean(input.confirmOverCapacity));
 
   const pigId = input.pigId?.trim().toUpperCase();
   if (pigId) assertPigIdFormat(pigId);
@@ -223,12 +223,12 @@ export async function updatePig(ctx: FarmContext, key: string, input: UpdatePigI
   const currentDay = today(ctx);
   if (input.dateOfBirth) assertNotFuture(input.dateOfBirth, currentDay, "Date of birth");
   const before = { earTag: pig.earTag, category: pig.category, status: pig.status, breed: pig.breed };
-  if (input.earTag !== undefined) pig.earTag = input.earTag;
+  if (input.earTag !== undefined) pig.earTag = input.earTag || undefined;
   if (input.breed) pig.breed = input.breed;
-  if (input.dateOfBirth) pig.dateOfBirth = input.dateOfBirth;
+  if (input.dateOfBirth !== undefined) pig.dateOfBirth = input.dateOfBirth;
   if (input.category) pig.category = input.category;
   if (input.sex) pig.sex = input.sex;
-  if (input.notes !== undefined) pig.notes = input.notes;
+  if (input.notes !== undefined) pig.notes = input.notes || undefined;
   if (input.source) pig.source = input.source;
   if (input.motherId !== undefined) pig.motherId = await assertRelative(ctx, input.motherId, "FEMALE", "mother", String(pig._id));
   if (input.fatherId !== undefined) pig.fatherId = await assertRelative(ctx, input.fatherId, "MALE", "father", String(pig._id));
@@ -256,7 +256,7 @@ export async function recordMovement(
   assertCanMove(pig.status);
   const currentDay = today(ctx);
   assertNotFuture(input.date, currentDay, "Movement date");
-  if (input.date < pig.dateOfBirth) {
+  if (pig.dateOfBirth && input.date < pig.dateOfBirth) {
     throw new AppError("VALIDATION_ERROR", "The movement date cannot be before the pig's date of birth.", 400);
   }
   const pen = await requirePen(ctx, input.toPenId);
@@ -361,13 +361,13 @@ export async function getPigDetail(ctx: FarmContext, key: string) {
   const partnerById = new Map(partners.map((item) => [String(item._id), item.pigId]));
 
   const lastMove = movements[0];
-  const feedSince = lastMove?.date ?? pig.dateOfBirth;
+  const feedSince = lastMove?.date ?? pig.dateOfBirth ?? null;
   const feedRecords = pig.currentPenId
     ? await FeedRecord.find({
         farmId,
         penId: pig.currentPenId,
         kind: "CONSUMPTION",
-        date: { $gte: feedSince },
+        ...(feedSince ? { date: { $gte: feedSince } } : {}),
       })
         .sort({ date: -1 })
         .limit(30)
@@ -383,7 +383,9 @@ export async function getPigDetail(ctx: FarmContext, key: string) {
   };
 
   const timeline = [
-    { id: `born-${pig.pigId}`, date: pig.dateOfBirth, title: litter ? `Born — litter ${litter.litterNumber}` : "Born", detail: pig.source === "BORN_ON_FARM" ? "Born on the farm" : labelSource(pig.source) },
+    ...(pig.dateOfBirth
+      ? [{ id: `born-${pig.pigId}`, date: pig.dateOfBirth, title: litter ? `Born — litter ${litter.litterNumber}` : "Born", detail: pig.source === "BORN_ON_FARM" ? "Born on the farm" : labelSource(pig.source) }]
+      : []),
     ...weights.map((weight) => ({ id: String(weight._id), date: weight.date, title: `Weight recorded — ${weight.weightKg} kg`, detail: weight.notes || undefined })),
     ...movements.map((move) => ({ id: String(move._id), date: move.date, title: move.toPenId ? `Moved from ${penLabel(move.fromPenId)} to ${penLabel(move.toPenId)}` : `Left ${penLabel(move.fromPenId)}`, detail: move.notes || move.reason })),
     ...vaccinations.map((item) => ({ id: String(item._id), date: item.date, title: `Vaccinated — ${vaccineById.get(String(item.vaccineId)) ?? "Vaccine"}`, detail: item.dose })),
@@ -508,7 +510,8 @@ export async function getPigDetail(ctx: FarmContext, key: string) {
 function labelSource(source: PigSource): string {
   if (source === "PURCHASED") return "Purchased";
   if (source === "TRANSFERRED") return "Transferred in";
-  return "Source unknown";
+  if (source === "BORN_ON_FARM") return "Born on farm";
+  return "Source not recorded";
 }
 
 export async function housingOptions(ctx: FarmContext) {

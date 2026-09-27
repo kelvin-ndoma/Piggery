@@ -32,6 +32,7 @@ export async function listHousing(ctx: FarmContext) {
         type: pen.type,
         capacity: pen.capacity ?? null,
         occupied: occupancy.get(String(pen._id)) ?? 0,
+        plannedFeedKgPerDay: pen.plannedFeedKgPerDay ?? null,
         isActive: pen.isActive,
         notes: pen.notes ?? "",
       })),

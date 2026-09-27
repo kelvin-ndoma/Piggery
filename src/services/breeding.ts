@@ -57,7 +57,7 @@ export async function recordBreeding(ctx: FarmContext, input: BreedingInput) {
   }
   const currentDay = today(ctx);
   assertNotFuture(input.breedingDate, currentDay, "Breeding date");
-  if (input.breedingDate < sow.dateOfBirth) {
+  if (sow.dateOfBirth && input.breedingDate < sow.dateOfBirth) {
     throw new AppError("VALIDATION_ERROR", "The breeding date cannot be before the sow's date of birth.", 400);
   }
   const expected = expectedFarrowDate(input.breedingDate, ctx.farm.settings.gestationDays);
@@ -148,7 +148,7 @@ export async function recordLitter(ctx: FarmContext, input: LitterInput) {
   if (father && father.sex !== "MALE") throw new AppError("VALIDATION_ERROR", "The father must be a male pig.", 400);
   const currentDay = today(ctx);
   assertNotFuture(input.birthDate, currentDay, "Birth date");
-  if (input.birthDate < mother.dateOfBirth) {
+  if (mother.dateOfBirth && input.birthDate < mother.dateOfBirth) {
     throw new AppError("VALIDATION_ERROR", "The birth date cannot be before the mother's date of birth.", 400);
   }
   const farmId = farmOid(ctx);

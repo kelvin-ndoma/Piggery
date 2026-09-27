@@ -40,7 +40,7 @@ export function assertSensibleWeight(input: WeightCheck): void {
       400,
     );
   }
-  if (input.date < input.dateOfBirth) {
+  if (input.dateOfBirth && input.date < input.dateOfBirth) {
     throw new AppError("VALIDATION_ERROR", "The weight date cannot be before the pig's date of birth.", 400);
   }
   if (input.date > input.today) {

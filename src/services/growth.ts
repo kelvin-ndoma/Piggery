@@ -53,7 +53,7 @@ export async function recordWeight(ctx: FarmContext, key: string, input: WeightI
   const check = {
     weightKg: input.weightKg,
     date: input.date,
-    dateOfBirth: pig.dateOfBirth,
+    dateOfBirth: pig.dateOfBirth ?? "",
     today: today(ctx),
     maxWeightKg: ctx.farm.settings.maxWeightKg,
     maxDailyGainKg: ctx.farm.settings.maxDailyGainKg,

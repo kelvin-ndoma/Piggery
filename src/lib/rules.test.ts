@@ -87,5 +87,14 @@ describe("qr and errors", () => {
     expect(payload.body.success).toBe(false);
     expect(payload.body.error.message).not.toMatch(/E11000|Mongo/);
     expect(formatAge("2026-09-20", "2026-09-26")).toBe("6 days");
+    const asOf = "2026-09-25";
+    const today = "2026-09-27";
+    const dob = (months: number) => addDays(asOf, -Math.round(months * 30.4375));
+    expect(formatAge(dob(5), today)).toBe("5 months");
+    expect(formatAge(dob(4.5), today)).toBe("4.5 months");
+    expect(formatAge(dob(3), today)).toBe("3 months");
+    expect(formatAge(dob(2.5), today)).toBe("2.5 months");
+    expect(formatAge(dob(1.5), today)).toBe("1.5 months");
+    expect(formatAge(null, today)).toBe("Not recorded");
   });
 });

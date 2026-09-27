@@ -11,7 +11,7 @@ export function EmptyState({
   action?: { href: string; label: string };
 }) {
   return (
-    <div className="rounded-2xl border border-dashed border-stone-300 bg-white/70 px-6 py-12 text-center">
+    <div className="rounded-2xl border border-dashed border-stone-300 bg-white/70 px-4 py-8 text-center sm:px-6 sm:py-12">
       <h2 className="text-lg font-semibold">{title}</h2>
       {body ? <p className="mx-auto mt-2 max-w-md text-sm text-stone-600">{body}</p> : null}
       {action ? (

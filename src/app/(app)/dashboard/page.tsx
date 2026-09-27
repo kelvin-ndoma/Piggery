@@ -15,6 +15,7 @@ export default async function DashboardPage() {
   return (
     <div>
       <PageHeader eyebrow={ctx.farm.name} title="Today on the farm" description="Live counts from recorded pigs and events. Averages stay blank until there is enough history." />
+      {ctx.farm.locationNote ? <p className="mb-6 break-words rounded-2xl border bg-white px-4 py-3 text-sm leading-6 text-stone-700">{ctx.farm.locationNote}</p> : null}
       <div className="mb-8 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {actions.map((action) => (
           <Link key={action.href} href={action.href} className="flex min-h-16 items-center justify-center rounded-2xl bg-primary px-3 text-center text-sm font-medium text-primary-foreground">
@@ -116,7 +117,7 @@ function Card({ label, value, hint, href }: { label: string; value: string; hint
   return (
     <Link href={href} className="rounded-2xl border bg-white p-4 shadow-sm">
       <p className="text-sm text-stone-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-tight">{value}</p>
+      <p className="mt-2 break-words text-xl font-semibold tracking-tight sm:text-2xl">{value}</p>
       {hint ? <p className="mt-1 text-xs text-stone-500">{hint}</p> : null}
     </Link>
   );

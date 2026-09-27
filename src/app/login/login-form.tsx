@@ -7,7 +7,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function LoginForm({ showDemo }: { showDemo: boolean }) {
+export function LoginForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -70,11 +70,6 @@ export function LoginForm({ showDemo }: { showDemo: boolean }) {
         </span>
       </label>
       <Button type="submit" className="w-full" disabled={pending}>{pending ? "Signing in..." : "Sign in"}</Button>
-      {showDemo ? (
-        <p className="text-xs leading-5 text-stone-500">
-          Owner test account: anthony@test.com. Password FarmDemo123!
-        </p>
-      ) : null}
     </form>
   );
 }

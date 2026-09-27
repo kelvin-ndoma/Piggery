@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
-import { Farm, FeedInventory, Litter, Mortality, Pig, PigWeight, Sale, User } from "../src/models";
+import { Farm, Pig, User } from "../src/models";
 
 async function seed(uri: string) {
   await new Promise<void>((resolve, reject) => {
@@ -20,24 +20,17 @@ async function main() {
     await seed(uri);
     await mongoose.connect(uri);
     const farm = await Farm.findOne({ slug: "anthony-pig-farm" });
-    if (!farm?.demoSeed) throw new Error("Demo farm was not created.");
-    const pigs = await Pig.find({ farmId: farm._id }).select("pigId status").lean();
+    if (!farm) throw new Error("Farm was not created.");
+    const pigs = await Pig.find({ farmId: farm._id }).select("pigId status category").lean();
     const ids = new Set(pigs.map((pig) => pig.pigId));
-    if (pigs.length !== 17 || ids.size !== 17) throw new Error(`Expected 17 unique pigs, found ${pigs.length}.`);
-    const dead = pigs.find((pig) => pig.pigId === "PIG-0090");
-    const sold = pigs.find((pig) => pig.pigId === "PIG-0091");
-    if (dead?.status !== "DEAD" || sold?.status !== "SOLD") throw new Error("Exit statuses were not preserved.");
-    const weighed = pigs.find((pig) => pig.pigId === "PIG-0021");
-    const weights = await PigWeight.countDocuments({ farmId: farm._id, pigId: weighed?._id });
-    if (weights !== 3) throw new Error(`Expected 3 weight records, found ${weights}.`);
-    const users = await User.countDocuments({ "memberships.farmId": farm._id });
-    const deaths = await Mortality.countDocuments({ farmId: farm._id });
-    const sales = await Sale.countDocuments({ farmId: farm._id });
-    const litters = await Litter.countDocuments({ farmId: farm._id, currentlyAlive: 8 });
-    const low = await FeedInventory.findOne({ farmId: farm._id, quantityKg: 2 });
-    if (users !== 5 || deaths !== 1 || sales !== 1 || litters !== 1 || !low) {
-      throw new Error("Seed counts for users, mortality, sales, litters, or feed did not match.");
+    const count = (category: string) => pigs.filter((pig) => pig.category === category).length;
+    if (pigs.length !== 68 || ids.size !== 68) throw new Error(`Expected 68 unique pigs, found ${pigs.length}.`);
+    if (count("SOW") !== 6 || count("BOAR") !== 1 || count("GROWER") !== 51 || count("PIGLET") !== 10) {
+      throw new Error("Stock sheet categories did not match.");
     }
+    if (!ids.has("S01") || !ids.has("B01") || !ids.has("G51")) throw new Error("Expected sow, boar, and grower IDs were missing.");
+    const users = await User.countDocuments({ "memberships.farmId": farm._id });
+    if (users !== 5) throw new Error(`Expected 5 users, found ${users}.`);
     console.log("Database seed checks passed.");
   } finally {
     await mongoose.disconnect();
