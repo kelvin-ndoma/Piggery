@@ -19,10 +19,15 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
   if (report === "financial" && !can(ctx.role, "finance:read")) notFound();
   const query = await searchParams;
   const range = resolveRange(today(ctx), query.from || query.to ? query : defaultRange(today(ctx)));
+  const canExport = can(ctx.role, "reports:export");
   const csv = `/api/reports/${report}?from=${range.from}&to=${range.to}&format=csv`;
   return (
     <div className="space-y-4">
-      <PageHeader title={`${report[0]?.toUpperCase()}${report.slice(1)} report`} action={{ href: csv, label: "Export CSV" }} />
+      <PageHeader
+        title={`${report[0]?.toUpperCase()}${report.slice(1)} report`}
+        action={canExport ? { href: csv, label: "Export CSV" } : undefined}
+      />
+      {!canExport ? <p className="text-sm text-stone-500">CSV download is limited to the farm owner.</p> : null}
       <form className="grid gap-2 sm:flex sm:flex-wrap" method="get">
         <input type="date" name="from" defaultValue={range.from} className="h-11 w-full min-w-0 rounded-xl border bg-white px-3 text-base sm:w-auto" />
         <input type="date" name="to" defaultValue={range.to} className="h-11 w-full min-w-0 rounded-xl border bg-white px-3 text-base sm:w-auto" />

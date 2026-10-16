@@ -17,7 +17,8 @@ export type IconName =
   | "bell"
   | "scan"
   | "team"
-  | "settings";
+  | "settings"
+  | "profile";
 
 export type NavItem = {
   href: string;
@@ -44,6 +45,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/scan", label: "Scan", icon: "scan" },
   { href: "/team", label: "Team", icon: "team", permission: "users:manage" },
   { href: "/settings", label: "Settings", icon: "settings" },
+  { href: "/profile", label: "Profile", icon: "profile" },
 ];
 
 export const QUICK_ACTIONS: Array<{ href: string; label: string; permission: Permission }> = [

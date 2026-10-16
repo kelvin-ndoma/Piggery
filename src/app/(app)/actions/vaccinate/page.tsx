@@ -17,7 +17,7 @@ export default async function VaccinatePage({ searchParams }: { searchParams: Pr
     <div className="space-y-6">
       <PageHeader title="Vaccinate" description="The vaccine list is yours to maintain. Nothing here assumes a schedule." />
       {options.length === 0 ? <p className="text-sm text-stone-600">Add a vaccine product before recording a dose.</p> : <VaccinationAction pigs={pigs} vaccines={options} preset={query.pig} />}
-      {can(ctx.role, "health:write") ? <div className="mx-auto max-w-xl"><VaccineForm /></div> : null}
+      {can(ctx.role, "health:write") ? <VaccineForm /> : null}
     </div>
   );
 }

@@ -78,12 +78,14 @@ export function SearchSelect({
   value,
   onChange,
   error,
+  placeholder = "Search by ID, e.g. S01",
 }: {
   label: string;
   options: SelectOption[];
   value: string;
   onChange: (value: string) => void;
   error?: string;
+  placeholder?: string;
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -101,7 +103,7 @@ export function SearchSelect({
       <div className="relative">
         <Input
           value={open ? query : (selected?.label ?? "")}
-          placeholder="Search"
+          placeholder={placeholder}
           onFocus={() => {
             setOpen(true);
             setQuery("");
@@ -142,16 +144,22 @@ export function TextInput({
   error,
   type = "text",
   hint,
+  placeholder,
 }: {
   label: string;
   registration: UseFormRegisterReturn;
   error?: FieldError;
   type?: string;
   hint?: string;
+  placeholder?: string;
 }) {
   return (
     <Field label={label} error={error} hint={hint}>
-      {type === "textarea" ? <Textarea {...registration} /> : <Input type={type} {...registration} />}
+      {type === "textarea" ? (
+        <Textarea placeholder={placeholder} {...registration} />
+      ) : (
+        <Input type={type} placeholder={placeholder} {...registration} />
+      )}
     </Field>
   );
 }

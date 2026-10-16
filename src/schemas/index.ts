@@ -364,6 +364,17 @@ export const updateUserSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Enter your current password"),
+    newPassword: z.string().min(8, "Use at least 8 characters for the new password"),
+    confirmPassword: z.string().min(8, "Confirm the new password"),
+  })
+  .refine((value) => value.newPassword === value.confirmPassword, {
+    message: "New password and confirmation do not match",
+    path: ["confirmPassword"],
+  });
+
 export const switchFarmSchema = z.object({ farmId: objectIdSchema });
 
 export const dateRangeSchema = z.object({
@@ -378,6 +389,92 @@ export const dateRangeSchema = z.object({
 export const loginSchema = z.object({
   email: z.email("Enter a valid email"),
   password: z.string().min(8, "Enter your password"),
+});
+
+export const createFarmTenantSchema = z.object({
+  farmName: z.string().trim().min(2).max(160),
+  country: z.string().trim().min(2).max(80).optional().or(z.literal("")).transform((v) => v || undefined),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^$|^\+?[0-9][0-9\s-]{7,18}$/, "Enter a valid phone number")
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => value || undefined),
+  locationNote: optionalText(300),
+  ownerName: z.string().trim().min(1).max(120),
+  ownerEmail: z.email("Enter a valid owner email"),
+  ownerPassword: z.string().min(8, "Use at least 8 characters"),
+  ownerPhone: z
+    .string()
+    .trim()
+    .regex(/^$|^\+?[0-9][0-9\s-]{7,18}$/, "Enter a valid phone number")
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => value || undefined),
+});
+
+export const assignFarmOwnerSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  email: z.email("Enter a valid email"),
+  password: z.string().min(8, "Use at least 8 characters"),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^$|^\+?[0-9][0-9\s-]{7,18}$/, "Enter a valid phone number")
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => value || undefined),
+});
+
+export const farmStatusSchema = z.object({
+  status: z.enum(["ACTIVE", "PAUSED", "SUSPENDED"]),
+});
+
+export const farmBillingSchema = z.object({
+  plan: z.enum(["FREE", "STARTER", "GROWTH", "ENTERPRISE", "CUSTOM"]),
+  status: z.enum(["TRIAL", "CURRENT", "PAST_DUE", "PAUSED", "COMPED", "CANCELLED"]),
+  cycle: z.enum(["MONTHLY", "YEARLY"]),
+  amount: z.coerce.number().min(0).max(10_000_000),
+  currency: z.string().trim().length(3).transform((value) => value.toUpperCase()),
+  nextBillingOn: z.union([dateSchema, z.literal(""), z.null()]).optional().transform((v) => v || null),
+  paidThroughOn: z.union([dateSchema, z.literal(""), z.null()]).optional().transform((v) => v || null),
+  notes: optionalText(1000),
+});
+
+export const platformSettingsSchema = z.object({
+  supportEmail: z.email("Enter a valid support email"),
+  supportPhone: z
+    .string()
+    .trim()
+    .regex(/^$|^\+?[0-9][0-9\s-]{7,18}$/, "Enter a valid phone number")
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => value || ""),
+  defaultCountry: z.string().trim().min(2).max(80),
+  defaultCurrency: z.string().trim().length(3).transform((value) => value.toUpperCase()),
+  billingCurrency: z.string().trim().length(3).transform((value) => value.toUpperCase()),
+  invoiceNote: optionalText(1000),
+  trialDays: z.coerce.number().int().min(0).max(365),
+});
+
+export const createPlatformAdminSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  email: z.email("Enter a valid email"),
+  password: z.string().min(8, "Use at least 8 characters"),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^$|^\+?[0-9][0-9\s-]{7,18}$/, "Enter a valid phone number")
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => value || undefined),
+  role: z.enum(["ADMIN", "SUPERADMIN"]).default("ADMIN"),
+});
+
+export const updatePlatformAdminSchema = z.object({
+  isActive: z.boolean().optional(),
+  role: z.enum(["ADMIN", "SUPERADMIN"]).optional(),
 });
 
 export type CreatePigInput = z.infer<typeof createPigSchema>;

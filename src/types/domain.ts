@@ -1,6 +1,34 @@
 export const ROLES = ["OWNER", "FARM_MANAGER", "FARM_WORKER", "VET", "VIEWER"] as const;
 export type Role = (typeof ROLES)[number];
 
+/** Platform-level roles (not farm membership). SUPERADMIN manages the admin team. */
+export const PLATFORM_ROLES = ["SUPERADMIN", "ADMIN"] as const;
+export type PlatformRole = (typeof PLATFORM_ROLES)[number];
+
+export const FARM_STATUSES = ["ACTIVE", "PAUSED", "SUSPENDED"] as const;
+export type FarmStatus = (typeof FARM_STATUSES)[number];
+
+export const BILLING_PLANS = ["FREE", "STARTER", "GROWTH", "ENTERPRISE", "CUSTOM"] as const;
+export type BillingPlan = (typeof BILLING_PLANS)[number];
+
+export const BILLING_STATUSES = ["TRIAL", "CURRENT", "PAST_DUE", "PAUSED", "COMPED", "CANCELLED"] as const;
+export type BillingStatus = (typeof BILLING_STATUSES)[number];
+
+export const BILLING_CYCLES = ["MONTHLY", "YEARLY"] as const;
+export type BillingCycle = (typeof BILLING_CYCLES)[number];
+
+export const PLATFORM_SUPERADMIN_EMAIL = "kelvinndomamutua@gmail.com";
+
+export const DEFAULT_PLATFORM_SETTINGS = {
+  supportEmail: PLATFORM_SUPERADMIN_EMAIL,
+  supportPhone: "",
+  defaultCountry: "Kenya",
+  defaultCurrency: "KES",
+  billingCurrency: "KES",
+  invoiceNote: "Update billing manually in the platform until card payments are enabled.",
+  trialDays: 14,
+} as const;
+
 export const PERMISSIONS = [
   "pigs:read",
   "pigs:write",
@@ -15,6 +43,7 @@ export const PERMISSIONS = [
   "finance:write",
   "users:manage",
   "farm:manage",
+  "reports:export",
   "historical:backfill",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];

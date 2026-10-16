@@ -15,12 +15,13 @@ const ALL: Permission[] = [
   "finance:write",
   "users:manage",
   "farm:manage",
+  "reports:export",
   "historical:backfill",
 ];
 
 const MATRIX: Record<Role, ReadonlySet<Permission>> = {
   OWNER: new Set(ALL),
-  FARM_MANAGER: new Set(ALL.filter((permission) => permission !== "users:manage")),
+  FARM_MANAGER: new Set(ALL.filter((permission) => permission !== "users:manage" && permission !== "reports:export")),
   FARM_WORKER: new Set([
     "pigs:read",
     "pigs:write",

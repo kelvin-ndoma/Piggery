@@ -1,5 +1,5 @@
 import { Schema, model, models, type Model, type Types } from "mongoose";
-import { ROLES, type Role } from "@/types/domain";
+import { PLATFORM_ROLES, ROLES, type PlatformRole, type Role } from "@/types/domain";
 
 export type Membership = {
   farmId: Types.ObjectId;
@@ -14,6 +14,7 @@ export type UserDoc = {
   passwordHash: string;
   phone?: string;
   isActive: boolean;
+  platformRole?: PlatformRole | null;
   activeFarmId?: Types.ObjectId | null;
   memberships: Membership[];
   createdAt: Date;
@@ -36,6 +37,7 @@ const userSchema = new Schema<UserDoc>(
     passwordHash: { type: String, required: true },
     phone: { type: String, trim: true },
     isActive: { type: Boolean, default: true },
+    platformRole: { type: String, enum: PLATFORM_ROLES, default: undefined },
     activeFarmId: { type: Schema.Types.ObjectId, ref: "Farm" },
     memberships: { type: [membershipSchema], default: [] },
   },
@@ -44,4 +46,9 @@ const userSchema = new Schema<UserDoc>(
 
 userSchema.index({ "memberships.farmId": 1 });
 
-export const User: Model<UserDoc> = (models.User as Model<UserDoc> | undefined) ?? model<UserDoc>("User", userSchema);
+// Next.js HMR can keep a stale compiled model (missing platformRole / ADMIN enum).
+if (models.User) {
+  delete models.User;
+}
+
+export const User: Model<UserDoc> = model<UserDoc>("User", userSchema);

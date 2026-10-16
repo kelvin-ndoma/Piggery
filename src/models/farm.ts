@@ -1,5 +1,17 @@
 import { Schema, model, models, type Model, type Types } from "mongoose";
-import { DEFAULT_FARM_SETTINGS, PEN_TYPES, type PenType } from "@/types/domain";
+import {
+  BILLING_CYCLES,
+  BILLING_PLANS,
+  BILLING_STATUSES,
+  DEFAULT_FARM_SETTINGS,
+  FARM_STATUSES,
+  PEN_TYPES,
+  type BillingCycle,
+  type BillingPlan,
+  type BillingStatus,
+  type FarmStatus,
+  type PenType,
+} from "@/types/domain";
 
 export type FarmSettings = {
   timezone: string;
@@ -11,6 +23,17 @@ export type FarmSettings = {
   maxDailyGainKg: number;
 };
 
+export type FarmBilling = {
+  plan: BillingPlan;
+  status: BillingStatus;
+  cycle: BillingCycle;
+  amount: number;
+  currency: string;
+  nextBillingOn?: string | null;
+  paidThroughOn?: string | null;
+  notes?: string;
+};
+
 export type FarmDoc = {
   _id: Types.ObjectId;
   name: string;
@@ -18,6 +41,8 @@ export type FarmDoc = {
   country: string;
   locationNote?: string;
   phone?: string;
+  status: FarmStatus;
+  billing: FarmBilling;
   demoSeed: boolean;
   settings: FarmSettings;
   createdAt: Date;
@@ -37,6 +62,20 @@ const settingsSchema = new Schema<FarmSettings>(
   { _id: false },
 );
 
+const billingSchema = new Schema<FarmBilling>(
+  {
+    plan: { type: String, enum: BILLING_PLANS, default: "STARTER" },
+    status: { type: String, enum: BILLING_STATUSES, default: "TRIAL", index: true },
+    cycle: { type: String, enum: BILLING_CYCLES, default: "MONTHLY" },
+    amount: { type: Number, default: 0, min: 0 },
+    currency: { type: String, default: "KES", uppercase: true, trim: true },
+    nextBillingOn: { type: String, default: null },
+    paidThroughOn: { type: String, default: null },
+    notes: { type: String, maxlength: 1000, default: "" },
+  },
+  { _id: false },
+);
+
 const farmSchema = new Schema<FarmDoc>(
   {
     name: { type: String, required: true, trim: true, maxlength: 160 },
@@ -44,14 +83,20 @@ const farmSchema = new Schema<FarmDoc>(
     country: { type: String, default: "Kenya" },
     locationNote: { type: String, maxlength: 300 },
     phone: { type: String },
+    status: { type: String, enum: FARM_STATUSES, default: "ACTIVE", index: true },
+    billing: { type: billingSchema, default: () => ({}) },
     demoSeed: { type: Boolean, default: false },
     settings: { type: settingsSchema, default: () => ({}) },
   },
   { timestamps: true },
 );
 
-export const Farm: Model<FarmDoc> =
-  (models.Farm as Model<FarmDoc> | undefined) ?? model<FarmDoc>("Farm", farmSchema);
+// Next.js HMR can keep a stale compiled model (missing billing / PAUSED status).
+if (models.Farm) {
+  delete models.Farm;
+}
+
+export const Farm: Model<FarmDoc> = model<FarmDoc>("Farm", farmSchema);
 
 export type BuildingDoc = {
   _id: Types.ObjectId;

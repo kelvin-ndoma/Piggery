@@ -20,7 +20,14 @@ export default async function ReportsPage() {
   const reports = REPORTS.filter(([key]) => key !== "financial" || can(ctx.role, "finance:read"));
   return (
     <div>
-      <PageHeader title="Reports" description="Filter by date on each report. Export CSV from the report page." />
+      <PageHeader
+        title="Reports"
+        description={
+          can(ctx.role, "reports:export")
+            ? "Filter by date on each report. Export CSV from the report page."
+            : "Filter by date on each report. CSV download is limited to the farm owner."
+        }
+      />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {reports.map(([key, label]) => (
           <Link key={key} href={`/reports/${key}`} className="rounded-2xl border bg-white p-5 font-medium shadow-sm">{label}</Link>

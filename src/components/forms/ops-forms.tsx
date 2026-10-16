@@ -38,14 +38,16 @@ export function FeedTypeForm() {
     successMessage: "Feed type saved",
   });
   return (
-    <form onSubmit={onSubmit}>
+    <form onSubmit={onSubmit} className="w-full">
       <FormCard title="Feed type">
         <FormError message={error} />
-        <TextInput label="Name" registration={form.register("name")} error={form.formState.errors.name} />
-        <SelectField label="Category" registration={form.register("category")} options={FEED_CATEGORIES.map((value) => ({ value, label: labelize(value) }))} />
-        <TextInput label="Cost per kg" type="number" registration={form.register("costPerKg", numberAs)} />
-        <TextInput label="Reorder level (kg)" type="number" registration={form.register("reorderLevelKg", numberAs)} />
-        <Button type="submit" disabled={pending}>{pending ? "Saving..." : "Save feed type"}</Button>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextInput label="Name" placeholder="e.g. Grower mash" registration={form.register("name")} error={form.formState.errors.name} />
+          <SelectField label="Category" registration={form.register("category")} options={FEED_CATEGORIES.map((value) => ({ value, label: labelize(value) }))} />
+          <TextInput label="Cost per kg" type="number" placeholder="e.g. 45" registration={form.register("costPerKg", numberAs)} />
+          <TextInput label="Reorder level (kg)" type="number" placeholder="e.g. 100" registration={form.register("reorderLevelKg", numberAs)} />
+        </div>
+        <Button type="submit" className="w-full sm:w-auto" disabled={pending}>{pending ? "Saving..." : "Save feed type"}</Button>
       </FormCard>
     </form>
   );
@@ -60,28 +62,42 @@ export function FeedRecordForm({ feeds, pens, canPurchase }: { feeds: SelectOpti
   });
   const kinds = FEED_KINDS.filter((kind) => canPurchase || kind === "CONSUMPTION");
   return (
-    <form onSubmit={onSubmit}>
+    <form onSubmit={onSubmit} className="w-full">
       <FormCard title="Feed record">
         <FormError message={error} />
-        <TextInput label="Date" type="date" registration={form.register("date")} />
-        <SearchSelect label="Feed" options={feeds} value={form.watch("feedTypeId")} onChange={(value) => form.setValue("feedTypeId", value)} />
-        <SelectField label="Kind" registration={form.register("kind")} options={kinds.map((value) => ({ value, label: labelize(value) }))} />
-        <SearchSelect label="Pen" options={pens} value={form.watch("penId") ?? ""} onChange={(value) => form.setValue("penId", value)} />
-        <TextInput label="Quantity (kg)" type="number" hint="Use a negative quantity only for an adjustment." registration={form.register("quantityKg", numberAs)} />
-        {canPurchase ? <TextInput label="Cost per kg" type="number" hint="Purchases can set a new cost. Consumption uses the saved cost." registration={form.register("costPerKg", numberAs)} /> : null}
-        <TextInput label="Notes" registration={form.register("notes")} />
-        <Button type="submit" disabled={pending}>{pending ? "Saving..." : "Save feed record"}</Button>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextInput label="Date" type="date" registration={form.register("date")} />
+          <SelectField label="Kind" registration={form.register("kind")} options={kinds.map((value) => ({ value, label: labelize(value) }))} />
+          <SearchSelect label="Feed" placeholder="Search feed type" options={feeds} value={form.watch("feedTypeId")} onChange={(value) => form.setValue("feedTypeId", value)} />
+          <SearchSelect label="Pen" placeholder="Search room, e.g. Room 5" options={pens} value={form.watch("penId") ?? ""} onChange={(value) => form.setValue("penId", value)} />
+          <TextInput label="Quantity (kg)" type="number" placeholder="e.g. 25" hint="Use a negative quantity only for an adjustment." registration={form.register("quantityKg", numberAs)} />
+          {canPurchase ? (
+            <TextInput label="Cost per kg" type="number" placeholder="e.g. 45" hint="Purchases can set a new cost. Consumption uses the saved cost." registration={form.register("costPerKg", numberAs)} />
+          ) : null}
+          <div className="sm:col-span-2">
+            <TextInput label="Notes" placeholder="e.g. Morning feed for Room 7" registration={form.register("notes")} />
+          </div>
+        </div>
+        <Button type="submit" className="w-full sm:w-auto" disabled={pending}>{pending ? "Saving..." : "Save feed record"}</Button>
       </FormCard>
     </form>
   );
 }
 
-function ObservationFields({ name, label, form }: { name: "housing" | "health" | "water" | "feeding" | "feedQuality"; label: string; form: ReturnType<typeof useRecordForm<typeof visitSchema._output>>["form"] }) {
+function ObservationFields({
+  name,
+  label,
+  form,
+}: {
+  name: "housing" | "health" | "water" | "feeding" | "feedQuality";
+  label: string;
+  form: ReturnType<typeof useRecordForm<typeof visitSchema._output>>["form"];
+}) {
   return (
     <div className="rounded-xl border p-3">
       <SelectField label={label} registration={form.register(`${name}.rating`)} options={OBSERVATION_RATINGS.map((value) => ({ value, label: labelize(value) }))} />
       <div className="mt-3">
-        <TextInput label="Notes" registration={form.register(`${name}.notes`)} />
+        <TextInput label="Notes" placeholder={`e.g. Notes about ${label.toLowerCase()}`} registration={form.register(`${name}.notes`)} />
       </div>
     </div>
   );
@@ -113,36 +129,53 @@ export function VisitForm({ suggestion, users }: { suggestion: string; users: Se
   const { form, error, pending, onSubmit } = record;
   const recommendations = form.watch("recommendations") ?? [];
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-2xl space-y-4">
+    <form onSubmit={onSubmit} className="w-full space-y-4">
       <FormCard title="Farm visit">
         <FormError message={error} />
-        <TextInput label="Date" type="date" registration={form.register("date")} />
-        <TextInput label="Farmer" registration={form.register("farmerName")} />
-        <TextInput label="Other contact" registration={form.register("otherContactName")} />
-        <TextInput label="Phone" registration={form.register("contactPhone")} />
-        <TextInput label="Pig population" type="textarea" registration={form.register("populationSummary")} hint="Started from the pigs currently on record. Edit it to match what you saw." />
-        <TextInput label="Visiting officer" registration={form.register("visitingOfficer")} />
-        <TextInput label="Next visit" type="date" registration={form.register("nextVisitDate")} />
-        <TextInput label="Other comments" type="textarea" registration={form.register("otherComments")} />
-      </FormCard>
-      <ObservationFields name="housing" label="Housing" form={form} />
-      <ObservationFields name="health" label="Health" form={form} />
-      <ObservationFields name="water" label="Water" form={form} />
-      <ObservationFields name="feeding" label="Feeding" form={form} />
-      <ObservationFields name="feedQuality" label="Feed quality" form={form} />
-      <FormCard title="Recommendations">
-        {recommendations.map((_, index) => (
-          <div key={index} className="space-y-3 rounded-xl border p-3">
-            <TextInput label="Recommendation" type="textarea" registration={form.register(`recommendations.${index}.text`)} />
-            <SelectField label="Priority" registration={form.register(`recommendations.${index}.priority`)} options={TASK_PRIORITY.map((value) => ({ value, label: labelize(value) }))} />
-            <SearchSelect label="Assign" options={users} value={form.watch(`recommendations.${index}.assignedUserId`) ?? ""} onChange={(value) => form.setValue(`recommendations.${index}.assignedUserId`, value)} />
-            <TextInput label="Due date" type="date" registration={form.register(`recommendations.${index}.dueDate`)} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextInput label="Date" type="date" registration={form.register("date")} />
+          <TextInput label="Next visit" type="date" registration={form.register("nextVisitDate")} />
+          <TextInput label="Farmer" placeholder="e.g. Anthony" registration={form.register("farmerName")} />
+          <TextInput label="Other contact" placeholder="e.g. Farm manager" registration={form.register("otherContactName")} />
+          <TextInput label="Phone" placeholder="e.g. +254700000000" registration={form.register("contactPhone")} />
+          <TextInput label="Visiting officer" placeholder="e.g. Vet name" registration={form.register("visitingOfficer")} />
+          <div className="sm:col-span-2">
+            <TextInput label="Pig population" type="textarea" registration={form.register("populationSummary")} hint="Started from the pigs currently on record. Edit it to match what you saw." />
           </div>
-        ))}
-        <Button type="button" variant="outline" onClick={() => form.setValue("recommendations", [...recommendations, { text: "", priority: "MEDIUM", assignedUserId: "", dueDate: "" }])}>
-          Add recommendation
-        </Button>
-        <Button type="submit" disabled={pending}>{pending ? "Saving..." : "Save visit"}</Button>
+          <div className="sm:col-span-2">
+            <TextInput label="Other comments" type="textarea" placeholder="e.g. Overall farm condition notes" registration={form.register("otherComments")} />
+          </div>
+        </div>
+      </FormCard>
+      <section className="rounded-2xl border bg-white p-4 shadow-sm md:p-6">
+        <h2 className="mb-4 text-lg font-semibold">Observations</h2>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <ObservationFields name="housing" label="Housing" form={form} />
+          <ObservationFields name="health" label="Health" form={form} />
+          <ObservationFields name="water" label="Water" form={form} />
+          <ObservationFields name="feeding" label="Feeding" form={form} />
+          <ObservationFields name="feedQuality" label="Feed quality" form={form} />
+        </div>
+      </section>
+      <FormCard title="Recommendations">
+        <div className="space-y-3">
+          {recommendations.map((_, index) => (
+            <div key={index} className="grid gap-3 rounded-xl border p-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <TextInput label="Recommendation" type="textarea" placeholder="e.g. Repair drinker in Room 6" registration={form.register(`recommendations.${index}.text`)} />
+              </div>
+              <SelectField label="Priority" registration={form.register(`recommendations.${index}.priority`)} options={TASK_PRIORITY.map((value) => ({ value, label: labelize(value) }))} />
+              <SearchSelect label="Assign" placeholder="Search team member" options={users} value={form.watch(`recommendations.${index}.assignedUserId`) ?? ""} onChange={(value) => form.setValue(`recommendations.${index}.assignedUserId`, value)} />
+              <TextInput label="Due date" type="date" registration={form.register(`recommendations.${index}.dueDate`)} />
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => form.setValue("recommendations", [...recommendations, { text: "", priority: "MEDIUM", assignedUserId: "", dueDate: "" }])}>
+            Add recommendation
+          </Button>
+          <Button type="submit" className="w-full sm:w-auto" disabled={pending}>{pending ? "Saving..." : "Save visit"}</Button>
+        </div>
       </FormCard>
     </form>
   );
@@ -157,11 +190,13 @@ export function RecommendationStatusForm({ id }: { id: string }) {
     successMessage: "Recommendation updated",
   });
   return (
-    <form onSubmit={onSubmit} className="space-y-3">
+    <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2">
       <FormError message={error} />
       <SelectField label="Status" registration={form.register("status")} options={TASK_STATUS.map((value) => ({ value, label: labelize(value) }))} />
       <TextInput label="Completed on" type="date" registration={form.register("completedOn")} />
-      <Button type="submit" disabled={pending}>{pending ? "Saving..." : "Update task"}</Button>
+      <div className="sm:col-span-2">
+        <Button type="submit" className="w-full sm:w-auto" disabled={pending}>{pending ? "Saving..." : "Update task"}</Button>
+      </div>
     </form>
   );
 }
@@ -175,15 +210,19 @@ export function ExpenseForm() {
     successHref: "/expenses",
   });
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-xl">
+    <form onSubmit={onSubmit} className="w-full">
       <FormCard title="Record expense">
         <FormError message={error} />
-        <TextInput label="Date" type="date" registration={form.register("date")} />
-        <SelectField label="Category" registration={form.register("category")} options={EXPENSE_CATEGORIES.map((value) => ({ value, label: labelize(value) }))} />
-        <TextInput label="Amount" type="number" registration={form.register("amount", numberAs)} />
-        <TextInput label="Description" registration={form.register("description")} />
-        <TextInput label="Payee" registration={form.register("payee")} />
-        <Button type="submit" disabled={pending}>{pending ? "Saving..." : "Save expense"}</Button>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextInput label="Date" type="date" registration={form.register("date")} />
+          <SelectField label="Category" registration={form.register("category")} options={EXPENSE_CATEGORIES.map((value) => ({ value, label: labelize(value) }))} />
+          <TextInput label="Amount" type="number" placeholder="e.g. 2500" registration={form.register("amount", numberAs)} />
+          <TextInput label="Payee" placeholder="e.g. Feed supplier" registration={form.register("payee")} />
+          <div className="sm:col-span-2">
+            <TextInput label="Description" placeholder="e.g. Bags of grower feed" registration={form.register("description")} />
+          </div>
+        </div>
+        <Button type="submit" className="w-full sm:w-auto" disabled={pending}>{pending ? "Saving..." : "Save expense"}</Button>
       </FormCard>
     </form>
   );
@@ -197,13 +236,17 @@ export function BuildingForm() {
     successMessage: "Building saved",
   });
   return (
-    <form onSubmit={onSubmit}>
+    <form onSubmit={onSubmit} className="w-full">
       <FormCard title="New building">
         <FormError message={error} />
-        <TextInput label="Name" registration={form.register("name")} />
-        <TextInput label="Code" registration={form.register("code")} />
-        <TextInput label="Notes" registration={form.register("notes")} />
-        <Button type="submit" disabled={pending}>{pending ? "Saving..." : "Save building"}</Button>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextInput label="Name" placeholder="e.g. Rooms 1–9" registration={form.register("name")} />
+          <TextInput label="Code" placeholder="e.g. R19" registration={form.register("code")} />
+          <div className="sm:col-span-2">
+            <TextInput label="Notes" placeholder="e.g. Older block" registration={form.register("notes")} />
+          </div>
+        </div>
+        <Button type="submit" className="w-full sm:w-auto" disabled={pending}>{pending ? "Saving..." : "Save building"}</Button>
       </FormCard>
     </form>
   );
@@ -217,15 +260,19 @@ export function PenForm({ buildings }: { buildings: SelectOption[] }) {
     successMessage: "Pen saved",
   });
   return (
-    <form onSubmit={onSubmit}>
+    <form onSubmit={onSubmit} className="w-full">
       <FormCard title="New pen">
         <FormError message={error} />
-        <SearchSelect label="Building" options={buildings} value={form.watch("buildingId")} onChange={(value) => form.setValue("buildingId", value)} />
-        <TextInput label="Name" registration={form.register("name")} />
-        <TextInput label="Code" registration={form.register("code")} />
-        <SelectField label="Type" registration={form.register("type")} options={PEN_TYPES.map((value) => ({ value, label: labelize(value) }))} />
-        <TextInput label="Capacity" type="number" registration={form.register("capacity", numberAs)} />
-        <Button type="submit" disabled={pending}>{pending ? "Saving..." : "Save pen"}</Button>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <SearchSelect label="Building" placeholder="Search building" options={buildings} value={form.watch("buildingId")} onChange={(value) => form.setValue("buildingId", value)} />
+          </div>
+          <TextInput label="Name" placeholder="e.g. Room 5" registration={form.register("name")} />
+          <TextInput label="Code" placeholder="e.g. 5" registration={form.register("code")} />
+          <SelectField label="Type" registration={form.register("type")} options={PEN_TYPES.map((value) => ({ value, label: labelize(value) }))} />
+          <TextInput label="Capacity" type="number" placeholder="e.g. 10" registration={form.register("capacity", numberAs)} />
+        </div>
+        <Button type="submit" className="w-full sm:w-auto" disabled={pending}>{pending ? "Saving..." : "Save pen"}</Button>
       </FormCard>
     </form>
   );
@@ -254,19 +301,23 @@ export function SettingsForm({
     successMessage: "Farm settings saved",
   });
   return (
-    <form onSubmit={onSubmit} className="max-w-xl">
+    <form onSubmit={onSubmit} className="w-full">
       <FormCard title="Farm settings">
         <FormError message={error} />
-        <TextInput label="Farm name" registration={form.register("name")} />
-        <TextInput label="Location note" registration={form.register("locationNote")} />
-        <TextInput label="Phone" registration={form.register("phone")} />
-        <TextInput label="Timezone" registration={form.register("timezone")} hint="Example: Africa/Nairobi" />
-        <TextInput label="Currency" registration={form.register("currency")} hint="Example: KES" />
-        <TextInput label="Gestation length (days)" type="number" registration={form.register("gestationDays", numberAs)} hint="Expected farrowing is the breeding date plus this many days. 114 is the usual swine gestation length." />
-        <TextInput label="Farrowing horizon (days)" type="number" registration={form.register("farrowingHorizonDays", numberAs)} />
-        <TextInput label="Maximum weight (kg)" type="number" registration={form.register("maxWeightKg", numberAs)} />
-        <TextInput label="Maximum daily gain (kg)" type="number" registration={form.register("maxDailyGainKg", numberAs)} hint="Faster gains are rejected unless an authorised user confirms the measurement." />
-        <Button type="submit" disabled={pending}>{pending ? "Saving..." : "Save settings"}</Button>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextInput label="Farm name" placeholder="e.g. Anthony Pig Farm" registration={form.register("name")} />
+          <TextInput label="Phone" placeholder="e.g. +254700000000" registration={form.register("phone")} />
+          <div className="sm:col-span-2">
+            <TextInput label="Location note" placeholder="e.g. Short note about the farm location or stock position" registration={form.register("locationNote")} />
+          </div>
+          <TextInput label="Timezone" placeholder="e.g. Africa/Nairobi" registration={form.register("timezone")} hint="Example: Africa/Nairobi" />
+          <TextInput label="Currency" placeholder="e.g. KES" registration={form.register("currency")} hint="Example: KES" />
+          <TextInput label="Gestation length (days)" type="number" placeholder="e.g. 114" registration={form.register("gestationDays", numberAs)} hint="Expected farrowing is the breeding date plus this many days. 114 is the usual swine gestation length." />
+          <TextInput label="Farrowing horizon (days)" type="number" placeholder="e.g. 14" registration={form.register("farrowingHorizonDays", numberAs)} />
+          <TextInput label="Maximum weight (kg)" type="number" placeholder="e.g. 400" registration={form.register("maxWeightKg", numberAs)} />
+          <TextInput label="Maximum daily gain (kg)" type="number" placeholder="e.g. 2" registration={form.register("maxDailyGainKg", numberAs)} hint="Faster gains are rejected unless an authorised user confirms the measurement." />
+        </div>
+        <Button type="submit" className="w-full sm:w-auto" disabled={pending}>{pending ? "Saving..." : "Save settings"}</Button>
       </FormCard>
     </form>
   );
@@ -280,15 +331,17 @@ export function UserForm() {
     successMessage: "User created",
   });
   return (
-    <form onSubmit={onSubmit}>
+    <form onSubmit={onSubmit} className="w-full">
       <FormCard title="Add a user">
         <FormError message={error} />
-        <TextInput label="Name" registration={form.register("name")} />
-        <TextInput label="Email" type="email" registration={form.register("email")} />
-        <TextInput label="Temporary password" type="password" registration={form.register("password")} />
-        <TextInput label="Phone" registration={form.register("phone")} />
-        <SelectField label="Role" registration={form.register("role")} options={ROLES.filter((role) => role !== "OWNER").map((value) => ({ value, label: labelize(value) }))} />
-        <Button type="submit" disabled={pending}>{pending ? "Saving..." : "Create user"}</Button>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextInput label="Name" placeholder="e.g. Jane Wanjiku" registration={form.register("name")} />
+          <TextInput label="Email" type="email" placeholder="e.g. jane@farm.test" registration={form.register("email")} />
+          <TextInput label="Temporary password" type="password" placeholder="At least 8 characters" registration={form.register("password")} />
+          <TextInput label="Phone" placeholder="e.g. +254700000000" registration={form.register("phone")} />
+          <SelectField label="Role" registration={form.register("role")} options={ROLES.filter((role) => role !== "OWNER").map((value) => ({ value, label: labelize(value) }))} />
+        </div>
+        <Button type="submit" className="w-full sm:w-auto" disabled={pending}>{pending ? "Saving..." : "Create user"}</Button>
       </FormCard>
     </form>
   );

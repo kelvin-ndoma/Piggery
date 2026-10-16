@@ -58,10 +58,64 @@ export async function updateTeamUser(ctx: FarmContext, id: string, input: { role
   if (input.isActive === false && String(user._id) === ctx.userId) {
     throw new AppError("VALIDATION_ERROR", "You cannot disable your own account.", 400);
   }
-  if (input.isActive !== undefined) user.isActive = input.isActive;
+  if (input.isActive !== undefined) {
+    user.isActive = input.isActive;
+    membership.status = input.isActive ? "ACTIVE" : "DISABLED";
+  }
   await user.save();
   await writeAudit(ctx, "user.update", "User", String(user._id), { role: membership.role, isActive: user.isActive });
   return { id: String(user._id) };
+}
+
+export async function removeTeamUser(ctx: FarmContext, id: string) {
+  if (String(id) === ctx.userId) {
+    throw new AppError("VALIDATION_ERROR", "You cannot remove your own account.", 400);
+  }
+  const user = await User.findOne({ _id: id, "memberships.farmId": farmOid(ctx) });
+  if (!user) throw new AppError("NOT_FOUND", "That user was not found on this farm.", 404);
+  const membership = user.memberships.find((item) => String(item.farmId) === ctx.farmId);
+  if (!membership) throw new AppError("NOT_FOUND", "That user was not found on this farm.", 404);
+  if (membership.role === "OWNER") {
+    throw new AppError("FORBIDDEN", "The farm owner cannot be removed from the team.", 403);
+  }
+  membership.status = "DISABLED";
+  user.isActive = false;
+  if (user.activeFarmId && String(user.activeFarmId) === ctx.farmId) {
+    user.activeFarmId = undefined;
+  }
+  await user.save();
+  await writeAudit(ctx, "user.remove", "User", String(user._id), { email: user.email, role: membership.role });
+  return { id: String(user._id) };
+}
+
+export async function changePassword(
+  ctx: FarmContext,
+  input: { currentPassword: string; newPassword: string },
+) {
+  const user = await User.findById(ctx.userId);
+  if (!user || !user.isActive) throw new AppError("UNAUTHORIZED", "Sign in required.", 401);
+  const matches = await bcrypt.compare(input.currentPassword, user.passwordHash);
+  if (!matches) throw new AppError("VALIDATION_ERROR", "Current password is incorrect.", 400);
+  if (input.currentPassword === input.newPassword) {
+    throw new AppError("VALIDATION_ERROR", "Choose a new password that is different from the current one.", 400);
+  }
+  user.passwordHash = await bcrypt.hash(input.newPassword, 12);
+  await user.save();
+  await writeAudit(ctx, "user.password", "User", String(user._id), {});
+  return { id: String(user._id) };
+}
+
+export async function getProfile(ctx: FarmContext) {
+  const user = await User.findById(ctx.userId).lean();
+  if (!user) throw new AppError("UNAUTHORIZED", "Sign in required.", 401);
+  return {
+    id: String(user._id),
+    name: user.name,
+    email: user.email,
+    phone: user.phone ?? "",
+    role: ctx.role,
+    farmName: ctx.farm.name,
+  };
 }
 
 export async function updateFarmSettings(

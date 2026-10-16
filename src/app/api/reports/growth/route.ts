@@ -9,5 +9,5 @@ export const GET = apiHandler(async (request, ctx) => {
     return compareGrowth(ctx, { pigIds: query.pigIds, litterId: query.litterId || undefined, penId: query.penId || undefined });
   }
   const rows = await growthReport(ctx, range.from, range.to);
-  return maybeCsv(query.format, "growth.csv", ["Pig", "Date", "Weight kg"], rows.map((row) => [row.pigId, row.date, row.weightKg]), { range, rows });
+  return maybeCsv(ctx, query.format, "growth.csv", ["Pig", "Date", "Weight kg"], rows.map((row) => [row.pigId, row.date, row.weightKg]), { range, rows });
 }, { permission: "pigs:read" });

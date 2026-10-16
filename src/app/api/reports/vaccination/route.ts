@@ -12,6 +12,7 @@ export const GET = apiHandler(async (request, ctx) => {
     ...board.recent.map((row) => ({ list: "Recent", ...row })),
   ];
   return maybeCsv(
+    ctx,
     query.format,
     "vaccination.csv",
     ["List", "Pig", "Vaccine", "Date", "Due"],

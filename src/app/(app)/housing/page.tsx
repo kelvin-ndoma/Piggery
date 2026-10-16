@@ -26,7 +26,7 @@ export default async function HousingPage() {
         </section>
       ))}
       {can(ctx.role, "housing:write") ? (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="space-y-4">
           <BuildingForm />
           <PenForm buildings={buildings.filter((building) => building.isActive).map((building) => ({ value: building.id, label: `${building.code} · ${building.name}` }))} />
         </div>

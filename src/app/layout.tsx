@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   description: "Farm management for pig herds.",
   applicationName: "Piggery",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [{ url: "/logo.png", type: "image/png" }],
+    apple: [{ url: "/logo.png", type: "image/png" }],
+  },
   robots: { index: false, follow: false },
   appleWebApp: { capable: true, title: "Piggery", statusBarStyle: "default" },
 };

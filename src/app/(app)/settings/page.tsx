@@ -24,7 +24,7 @@ export default async function SettingsPage() {
       ) : (
         <p className="text-sm text-stone-600">{ctx.farm.name} · {ctx.farm.settings.timezone} · {ctx.farm.settings.currency}</p>
       )}
-      <section className="max-w-xl rounded-2xl border bg-white p-4 text-sm text-stone-600">
+      <section className="rounded-2xl border bg-white p-4 text-sm text-stone-600 md:p-6">
         <h2 className="font-medium text-stone-900">Photos and offline</h2>
         <p className="mt-2">{isCloudinaryConfigured() ? "Cloudinary is configured for pig photos." : "Photo upload is ready when Cloudinary credentials are added. QR codes still contain only the pig ID."}</p>
         <p className="mt-2">Each save carries a transaction id, so a retry after a lost connection does not create a duplicate record. A later offline queue can use the same API.</p>

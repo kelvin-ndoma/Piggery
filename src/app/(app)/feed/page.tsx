@@ -48,7 +48,7 @@ export default async function FeedPage() {
         empty={{ title: "No feed records yet.", action: can(ctx.role, "feed:write") ? { href: "/actions/feed", label: "Record feed" } : undefined }}
       />
       {can(ctx.role, "feed:write") ? (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="space-y-4">
           <FeedTypeForm />
           <FeedRecordForm feeds={types.filter((type) => type.isActive).map((type) => ({ value: type.id, label: type.name }))} pens={pens} canPurchase={can(ctx.role, "finance:write")} />
         </div>

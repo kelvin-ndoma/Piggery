@@ -20,6 +20,15 @@ describe("permissions", () => {
     expect(can("VET", "health:write")).toBe(true);
     expect(can("VIEWER", "pigs:write")).toBe(false);
   });
+
+  it("keeps team changes and report downloads with the owner", () => {
+    expect(can("OWNER", "users:manage")).toBe(true);
+    expect(can("OWNER", "reports:export")).toBe(true);
+    expect(can("FARM_MANAGER", "users:manage")).toBe(false);
+    expect(can("FARM_MANAGER", "reports:export")).toBe(false);
+    expect(can("FARM_WORKER", "users:manage")).toBe(false);
+    expect(can("FARM_WORKER", "reports:export")).toBe(false);
+  });
 });
 
 describe("growth rules", () => {

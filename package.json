@@ -12,7 +12,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "platform:admin": "tsx scripts/ensure-platform-admin.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

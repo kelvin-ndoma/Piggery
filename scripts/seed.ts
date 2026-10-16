@@ -58,6 +58,7 @@ async function main() {
     locationNote:
       "25 Sep 2026 stock sheet. Room count is 68: 6 sows, 1 boar, 51 growers and 10 piglets. A handwritten report said 57 pigs + 10 piglets. Expected farrowing is 23 Oct 2026, 23 piglets; the sow is not identified yet.",
     phone: "+254700000000",
+    status: "ACTIVE",
     demoSeed: false,
     settings: {
       timezone: "Africa/Nairobi",

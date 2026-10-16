@@ -36,7 +36,10 @@ export function LoginForm() {
       setError("Invalid email or password.");
       return;
     }
-    router.push("/dashboard");
+    const home = await fetch("/api/session/home").then((res) => res.json()).catch(() => null);
+    const path =
+      home && home.success && typeof home.data?.path === "string" ? home.data.path : "/dashboard";
+    router.push(path);
     router.refresh();
   }
 

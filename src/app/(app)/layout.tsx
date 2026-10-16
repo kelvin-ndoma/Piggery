@@ -13,7 +13,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const actions = QUICK_ACTIONS.filter((item) => can(ctx.role, item.permission));
   return (
     <AppShell
-      farmName={ctx.farm.name}
       role={ctx.role}
       userName={ctx.userName}
       unread={unread}

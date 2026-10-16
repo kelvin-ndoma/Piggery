@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
 import { AppError } from "@/lib/errors";
+import { getOptionalPlatformContext } from "@/lib/platform";
 import { Farm } from "@/models/farm";
 import { User } from "@/models/user";
 import type { Role } from "@/types/domain";
@@ -53,10 +54,20 @@ export const getOptionalFarmContext = cache(async (): Promise<FarmContext | null
   const active = user.memberships.filter((membership) => membership.status === "ACTIVE");
   if (active.length === 0) return null;
 
-  const farms = await Farm.find({ _id: { $in: active.map((membership) => membership.farmId) } });
+  const farms = await Farm.find({
+    _id: { $in: active.map((membership) => membership.farmId) },
+    status: "ACTIVE",
+  });
+  if (farms.length === 0) return null;
+
   const current =
-    active.find((membership) => user.activeFarmId && membership.farmId.equals(user.activeFarmId)) ?? active[0];
-  const farm = farms.find((item) => item._id.equals(current.farmId));
+    active.find(
+      (membership) =>
+        user.activeFarmId &&
+        membership.farmId.equals(user.activeFarmId) &&
+        farms.some((farm) => farm._id.equals(membership.farmId)),
+    ) ?? active.find((membership) => farms.some((farm) => farm._id.equals(membership.farmId)));
+  const farm = current ? farms.find((item) => item._id.equals(current.farmId)) : undefined;
   if (!farm || !current) return null;
 
   if (!user.activeFarmId || !user.activeFarmId.equals(farm._id)) {
@@ -101,6 +112,8 @@ export async function requireFarmContext(): Promise<FarmContext> {
   if (!session?.user?.id) redirect("/login");
   const context = await getOptionalFarmContext();
   if (!context) {
+    const platform = await getOptionalPlatformContext();
+    if (platform) redirect("/platform");
     await connectDB();
     const existing = await User.findById(session.user.id).select("_id");
     if (!existing) redirect("/api/session/reset");

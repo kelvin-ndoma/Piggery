@@ -11,13 +11,11 @@ export default async function FeedActionPage() {
   return (
     <div>
       <PageHeader title="Record feed" description="Consumption is stored as its own record. Cost is quantity times the cost per kg saved at the time." />
-      <div className="mx-auto max-w-xl">
-        <FeedRecordForm
-          feeds={feeds.filter((feed) => feed.isActive).map((feed) => ({ value: feed.id, label: feed.name, description: `${feed.quantityKg} kg on hand` }))}
-          pens={pens}
-          canPurchase={can(ctx.role, "finance:write")}
-        />
-      </div>
+      <FeedRecordForm
+        feeds={feeds.filter((feed) => feed.isActive).map((feed) => ({ value: feed.id, label: feed.name, description: `${feed.quantityKg} kg on hand` }))}
+        pens={pens}
+        canPurchase={can(ctx.role, "finance:write")}
+      />
     </div>
   );
 }

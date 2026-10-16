@@ -89,30 +89,57 @@ export default async function PigPage({
       </div>
       <div className="mt-6 space-y-4">
         {tab === "overview" ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <Info title="Identity" lines={[`Ear tag: ${pig.earTag ?? "—"}`, `Source: ${labelize(pig.source)}`, pig.litterNumber ? `Litter: ${pig.litterNumber}` : "No litter link", pig.notes || "No notes"]} />
-            <Info title="Parents" lines={[`Mother: ${pig.mother?.pigId ?? "—"}`, `Father: ${pig.father?.pigId ?? "—"}`]} />
-            {pig.acquisition ? <Info title="Acquisition" lines={[pig.acquisition.date ?? "", pig.acquisition.supplier ?? "", pig.acquisition.price != null ? formatMoney(pig.acquisition.price, ctx.farm.settings.currency) : ""].filter(Boolean)} /> : null}
-            {canEdit && pig.status === "ACTIVE" ? <ExitForm pigRef={pig.id} /> : null}
+          <div className="space-y-4">
+            {canEdit ? (
+              <EditPigForm
+                pigRef={pig.id}
+                females={females.filter((item) => item.value !== pig.id)}
+                males={males.filter((item) => item.value !== pig.id)}
+                values={{
+                  earTag: pig.earTag ?? "",
+                  sex: pig.sex,
+                  breed: pig.breed,
+                  dateOfBirth: pig.dateOfBirth ?? "",
+                  source: pig.source,
+                  category: pig.category,
+                  notes: pig.notes,
+                  motherId: pig.mother?.id ?? "",
+                  fatherId: pig.father?.id ?? "",
+                }}
+              />
+            ) : (
+              <Info
+                title="Identity"
+                lines={[
+                  `Ear tag: ${pig.earTag ?? "—"}`,
+                  `Source: ${labelize(pig.source)}`,
+                  pig.litterNumber ? `Litter: ${pig.litterNumber}` : "No litter link",
+                  pig.notes || "No notes",
+                ]}
+              />
+            )}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Info
+                title="Parents"
+                lines={[
+                  `Mother: ${pig.mother?.pigId ?? "—"}`,
+                  `Father: ${pig.father?.pigId ?? "—"}`,
+                  pig.litterNumber ? `Litter: ${pig.litterNumber}` : "No litter link",
+                ]}
+              />
+              {pig.acquisition ? (
+                <Info
+                  title="Acquisition"
+                  lines={[
+                    pig.acquisition.date ?? "",
+                    pig.acquisition.supplier ?? "",
+                    pig.acquisition.price != null ? formatMoney(pig.acquisition.price, ctx.farm.settings.currency) : "",
+                  ].filter(Boolean)}
+                />
+              ) : null}
+              {canEdit && pig.status === "ACTIVE" ? <ExitForm pigRef={pig.id} /> : null}
+            </div>
           </div>
-        ) : null}
-        {tab === "overview" && canEdit ? (
-          <EditPigForm
-            pigRef={pig.id}
-            females={females.filter((item) => item.value !== pig.id)}
-            males={males.filter((item) => item.value !== pig.id)}
-            values={{
-              earTag: pig.earTag ?? "",
-              sex: pig.sex,
-              breed: pig.breed,
-              dateOfBirth: pig.dateOfBirth ?? "",
-              source: pig.source,
-              category: pig.category,
-              notes: pig.notes,
-              motherId: pig.mother?.id ?? "",
-              fatherId: pig.father?.id ?? "",
-            }}
-          />
         ) : null}
         {tab === "growth" ? (
           <>

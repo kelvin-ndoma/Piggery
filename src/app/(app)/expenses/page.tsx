@@ -21,7 +21,7 @@ export default async function ExpensesPage() {
         rows={expenses.map((expense) => ({ id: expense.id, cells: { date: formatDisplayDate(expense.date), category: labelize(expense.category), description: expense.description, amount: formatMoney(expense.amount, expense.currency) } }))}
         empty={{ title: "No expenses yet." }}
       />
-      {can(ctx.role, "finance:write") ? <div className="max-w-xl"><ExpenseForm /></div> : null}
+      {can(ctx.role, "finance:write") ? <ExpenseForm /> : null}
     </div>
   );
 }
