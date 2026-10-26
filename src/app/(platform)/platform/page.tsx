@@ -16,6 +16,7 @@ export default async function PlatformOverviewPage() {
     { label: "Users", value: data.stats.users },
     { label: "Active pigs", value: data.stats.activePigs },
     { label: "Admins", value: data.stats.admins },
+    { label: "Inquiries", value: data.stats.openInquiries },
   ];
 
   return (
@@ -24,7 +25,7 @@ export default async function PlatformOverviewPage() {
         eyebrow="Platform"
         title="Overview"
         description="High-level control across tenant farms, billing, and your platform team."
-        action={{ href: "/platform/farms/new", label: "Add farm tenant" }}
+        action={{ href: "/platform/inquiries", label: "Review inquiries" }}
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

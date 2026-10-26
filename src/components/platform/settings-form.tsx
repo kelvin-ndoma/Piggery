@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { goAfterSave } from "@/lib/client-nav";
 
 export function PlatformSettingsForm({
   settings,
@@ -18,7 +18,6 @@ export function PlatformSettingsForm({
     trialDays: number;
   };
 }) {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
   const [pending, setPending] = useState(false);
@@ -52,7 +51,7 @@ export function PlatformSettingsForm({
       return;
     }
     setOk(true);
-    router.refresh();
+    goAfterSave();
   }
 
   return (

@@ -225,7 +225,7 @@ async function main() {
     type: "FARROWING",
     title: "Expected farrowing 23 October 2026",
     body: "23 piglets are expected. The sow, mating date, parity and litter size were blank on the 25 September 2026 sheet.",
-    href: "/breeding",
+    href: "/serving",
     dedupeKey: "stock-expected-farrow-2026-10-23",
     readBy: [],
   });

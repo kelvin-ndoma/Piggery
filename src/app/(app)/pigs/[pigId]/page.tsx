@@ -9,7 +9,7 @@ import { can } from "@/lib/permissions";
 import { requireFarmContext } from "@/lib/context";
 import { formatDisplayDate } from "@/lib/dates";
 import { formatGain, formatMoney, formatWeight } from "@/lib/format";
-import { labelSex, labelize } from "@/lib/utils";
+import { labelSex, labelize, servingMethodLabel } from "@/lib/utils";
 import { AppError } from "@/lib/errors";
 import { getPigDetail, housingOptions, pigOptions } from "@/services/pigs";
 import type { SelectOption } from "@/types/api";
@@ -67,6 +67,7 @@ export default async function PigPage({
         <Meta label="Sex" value={labelSex(pig.sex)} />
         <Meta label="Breed" value={pig.breed} />
         <Meta label="Age" value={pig.ageLabel} />
+        <Meta label="Mother" value={pig.mother?.pigId ?? "Not recorded"} />
         <Meta label="Weight" value={formatWeight(pig.weightKg, ctx.farm.settings.weightUnit)} />
         <Meta label="Pen" value={pig.penLabel ?? "No pen"} />
         <Meta label="Category" value={labelize(pig.category)} />
@@ -83,7 +84,7 @@ export default async function PigPage({
       <div className="-mx-4 mt-2 flex gap-1 overflow-x-auto border-b px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {TABS.map((item) => (
           <Link key={item} href={`/pigs/${pig.pigId}?tab=${item}`} className={`inline-flex h-11 shrink-0 items-center border-b-2 px-3 text-sm capitalize ${tab === item ? "border-primary text-primary" : "border-transparent text-stone-500"}`}>
-            {item}
+            {item === "breeding" ? "Serving" : item}
           </Link>
         ))}
       </div>
@@ -181,8 +182,8 @@ export default async function PigPage({
         ) : null}
         {tab === "breeding" ? (
           <>
-            <RecordTable columns={[{ key: "date", label: "Date" }, { key: "role", label: "Role" }, { key: "partner", label: "Partner" }, { key: "status", label: "Status" }, { key: "due", label: "Expected farrow" }]} rows={detail.breeding.map((item) => ({ id: item.id, cells: { date: formatDisplayDate(item.date), role: item.role, partner: item.partner, status: <Badge value={item.status} />, due: formatDisplayDate(item.expectedFarrowDate) } }))} empty={{ title: "No breeding records for this pig.", action: pig.sex === "FEMALE" && can(ctx.role, "breeding:write") ? { href: `/actions/breeding?sow=${pig.id}`, label: "Record breeding" } : undefined }} />
-            {pig.sex === "FEMALE" && can(ctx.role, "breeding:write") && detail.breeding.length > 0 ? <Link className="inline-flex h-11 items-center text-sm font-medium text-primary" href={`/actions/breeding?sow=${pig.id}`}>Record breeding</Link> : null}
+            <RecordTable columns={[{ key: "date", label: "Served on" }, { key: "role", label: "Role" }, { key: "partner", label: "Partner" }, { key: "method", label: "Method" }, { key: "status", label: "Status" }, { key: "due", label: "Due to farrow" }]} rows={detail.breeding.map((item) => ({ id: item.id, cells: { date: formatDisplayDate(item.date), role: item.role, partner: item.partner, method: servingMethodLabel(item.method), status: <Badge value={item.status} />, due: formatDisplayDate(item.expectedFarrowDate) } }))} empty={{ title: "No serving records for this pig.", action: pig.sex === "FEMALE" && can(ctx.role, "breeding:write") ? { href: `/actions/serving?sow=${pig.id}`, label: "Record serving" } : undefined }} />
+            {pig.sex === "FEMALE" && can(ctx.role, "breeding:write") && detail.breeding.length > 0 ? <Link className="inline-flex h-11 items-center text-sm font-medium text-primary" href={`/actions/serving?sow=${pig.id}`}>Record serving</Link> : null}
           </>
         ) : null}
         {tab === "family" ? (
@@ -208,9 +209,6 @@ export default async function PigPage({
               ))}
             </ol>
           )
-        ) : null}
-        {can(ctx.role, "finance:read") && detail.sales.length > 0 ? (
-          <p className="text-sm text-stone-500">Sale: {detail.sales.map((sale) => `${formatDisplayDate(sale.date)} · ${sale.buyerName} · ${formatMoney(sale.amount, ctx.farm.settings.currency)}`).join("; ")}</p>
         ) : null}
       </div>
     </div>

@@ -5,10 +5,11 @@ import {
   FarmBillingForm,
   FarmStatusControls,
 } from "@/components/platform/farm-admin-actions";
+import { RecordPaymentForm } from "@/components/platform/record-payment-form";
 import { PageHeader } from "@/components/page-header";
 import { requirePlatformAdmin } from "@/lib/platform";
 import { labelize } from "@/lib/utils";
-import { getPlatformFarm } from "@/services/platform";
+import { defaultPaidOn, getPlatformFarm } from "@/services/platform";
 
 export default async function PlatformFarmDetailPage({
   params,
@@ -67,6 +68,37 @@ export default async function PlatformFarmDetailPage({
       </div>
 
       <FarmBillingForm farmId={farm.id} billing={farm.billing} />
+
+      <RecordPaymentForm
+        farmId={farm.id}
+        amount={farm.billing.amount}
+        currency={farm.billing.currency}
+        paidOn={defaultPaidOn()}
+      />
+
+      <section className="rounded-2xl border bg-white p-5">
+        <h2 className="text-base font-semibold">Payments</h2>
+        {farm.payments.length === 0 ? (
+          <p className="mt-2 text-sm text-stone-600">No payments recorded.</p>
+        ) : (
+          <ul className="mt-3 divide-y text-sm">
+            {farm.payments.map((payment) => (
+              <li key={payment.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                <div>
+                  <p className="font-medium">
+                    {payment.amount.toLocaleString()} {payment.currency} · {payment.method}
+                  </p>
+                  <p className="text-xs text-stone-500">
+                    {payment.paidOn}
+                    {payment.reference ? ` · ${payment.reference}` : ""}
+                  </p>
+                </div>
+                <p className="text-xs text-stone-500">{payment.recordedByEmail}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="rounded-2xl border bg-white p-5">
         <h2 className="text-base font-semibold">Current owner</h2>

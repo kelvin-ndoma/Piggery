@@ -5,32 +5,29 @@ import { Button } from "@/components/ui/button";
 import { FormCard, FormError, SearchSelect, SelectField, TextInput } from "@/components/forms/fields";
 import { useRecordForm } from "@/components/forms/use-record-form";
 import { breedingSchema, createPigSchema, exitSchema, litterSchema, movementSchema, pigletSchema, saleSchema, updatePigSchema, weightSchema } from "@/schemas";
-import { BREEDING_METHODS, MOVEMENT_REASONS, PIG_CATEGORY, PIG_SEX, PIG_SOURCE, type PigCategory, type PigSex, type PigSource } from "@/types/domain";
+import { MOVEMENT_REASONS, PIG_CATEGORY, PIG_SEX, PIG_SOURCE, type PigCategory, type PigSex, type PigSource } from "@/types/domain";
 import type { SelectOption } from "@/types/api";
 import { labelize } from "@/lib/utils";
 
 const numberAs = { setValueAs: (value: string) => (value === "" ? undefined : Number(value)) };
 const sexOptions = PIG_SEX.map((value) => ({ value, label: value === "UNKNOWN" ? "Not recorded" : labelize(value) }));
 
-export function PigForm({ pens, pigs, showPrice }: { pens: SelectOption[]; pigs: SelectOption[]; showPrice: boolean }) {
+export function PigForm({ pens }: { pens: SelectOption[] }) {
   const { form, error, pending, onSubmit } = useRecordForm({
     url: "/api/pigs",
     schema: createPigSchema,
     defaultValues: {
-      sex: "FEMALE",
-      source: "BORN_ON_FARM",
-      category: "PIGLET",
+      sex: undefined,
+      source: undefined,
+      category: undefined,
       breed: "",
       dateOfBirth: "",
-      pigId: "",
       earTag: "",
       notes: "",
-      motherId: "",
-      fatherId: "",
       currentPenId: "",
     },
     successMessage: "Pig registered",
-    successHref: "/pigs/{pigId}",
+    successHref: "/pigs",
   });
   return (
     <form onSubmit={onSubmit} className="w-full">
@@ -38,30 +35,50 @@ export function PigForm({ pens, pigs, showPrice }: { pens: SelectOption[]; pigs:
         <FormError message={error} />
         <div className="grid gap-4 sm:grid-cols-2">
           <TextInput
-            label="Pig ID"
-            placeholder="e.g. S07 or leave blank for PIG-0001"
-            hint="Leave blank to generate the next ID, such as PIG-0001."
-            registration={form.register("pigId")}
-            error={form.formState.errors.pigId}
+            label="Ear tag"
+            required
+            placeholder="e.g. ET-014"
+            registration={form.register("earTag")}
+            error={form.formState.errors.earTag}
           />
-          <TextInput label="Ear tag" placeholder="e.g. ET-014" registration={form.register("earTag")} />
-          <SelectField label="Sex" registration={form.register("sex")} options={sexOptions} />
-          <TextInput label="Breed" placeholder="e.g. Large White, Landrace, or Not recorded" registration={form.register("breed")} error={form.formState.errors.breed} />
+          <SelectField
+            label="Sex"
+            required
+            registration={form.register("sex")}
+            options={sexOptions}
+            error={form.formState.errors.sex}
+          />
+          <TextInput
+            label="Breed"
+            required
+            placeholder="e.g. Large White, Landrace"
+            registration={form.register("breed")}
+            error={form.formState.errors.breed}
+          />
           <TextInput label="Date of birth" type="date" hint="Leave blank if the age is not known yet." registration={form.register("dateOfBirth")} error={form.formState.errors.dateOfBirth} />
-          <SelectField label="Source" registration={form.register("source")} options={PIG_SOURCE.map((value) => ({ value, label: labelize(value) }))} />
-          <SelectField label="Category" registration={form.register("category")} options={PIG_CATEGORY.map((value) => ({ value, label: labelize(value) }))} />
-          <SearchSelect label="Pen" placeholder="Search room, e.g. Room 5" options={pens} value={form.watch("currentPenId") ?? ""} onChange={(value) => form.setValue("currentPenId", value)} />
-          <SearchSelect label="Mother" placeholder="Search sow, e.g. S01" options={pigs} value={form.watch("motherId") ?? ""} onChange={(value) => form.setValue("motherId", value)} />
-          <SearchSelect label="Father" placeholder="Search boar, e.g. B01" options={pigs} value={form.watch("fatherId") ?? ""} onChange={(value) => form.setValue("fatherId", value)} />
-          {showPrice ? (
-            <TextInput
-              label="Acquisition price"
-              type="number"
-              placeholder="e.g. 15000"
-              registration={form.register("acquisitionPrice", numberAs)}
-              hint="Stored for the owner and manager. Amount in farm currency."
-            />
-          ) : null}
+          <SelectField
+            label="Source"
+            required
+            registration={form.register("source")}
+            options={PIG_SOURCE.map((value) => ({ value, label: labelize(value) }))}
+            error={form.formState.errors.source}
+          />
+          <SelectField
+            label="Category"
+            required
+            registration={form.register("category")}
+            options={PIG_CATEGORY.map((value) => ({ value, label: labelize(value) }))}
+            error={form.formState.errors.category}
+          />
+          <SearchSelect
+            label="Pen"
+            required
+            placeholder="Search room, e.g. Room 5"
+            options={pens}
+            value={form.watch("currentPenId") ?? ""}
+            onChange={(value) => form.setValue("currentPenId", value, { shouldValidate: true, shouldDirty: true })}
+            error={form.formState.errors.currentPenId}
+          />
           <div className="sm:col-span-2">
             <TextInput label="Notes" type="textarea" placeholder="e.g. Bought from neighbour. Confirm age and weight." registration={form.register("notes")} />
           </div>
@@ -143,7 +160,7 @@ export function AddPigletForm({
     defaultValues: {
       pigId: "",
       earTag: "",
-      sex: "UNKNOWN",
+      sex: undefined,
       breed,
       dateOfBirth: "",
       source: "BORN_ON_FARM",
@@ -167,12 +184,52 @@ export function AddPigletForm({
             hint="Leave blank to generate the next ID."
             registration={form.register("pigId")}
           />
-          <SelectField label="Sex" registration={form.register("sex")} options={sexOptions} />
-          <TextInput label="Ear tag" placeholder="e.g. ET-021" registration={form.register("earTag")} />
-          <TextInput label="Breed" placeholder="e.g. Large White or Not recorded" registration={form.register("breed")} error={form.formState.errors.breed} />
+          <SelectField
+            label="Sex"
+            required
+            registration={form.register("sex")}
+            options={sexOptions}
+            error={form.formState.errors.sex}
+          />
+          <TextInput
+            label="Ear tag"
+            required
+            placeholder="e.g. ET-021"
+            registration={form.register("earTag")}
+            error={form.formState.errors.earTag}
+          />
+          <TextInput
+            label="Breed"
+            required
+            placeholder="e.g. Large White"
+            registration={form.register("breed")}
+            error={form.formState.errors.breed}
+          />
+          <SelectField
+            label="Source"
+            required
+            registration={form.register("source")}
+            options={PIG_SOURCE.map((value) => ({ value, label: labelize(value) }))}
+            error={form.formState.errors.source}
+          />
+          <SelectField
+            label="Category"
+            required
+            registration={form.register("category")}
+            options={PIG_CATEGORY.map((value) => ({ value, label: labelize(value) }))}
+            error={form.formState.errors.category}
+          />
           <TextInput label="Date of birth" type="date" hint="Leave blank if it is not known yet." registration={form.register("dateOfBirth")} />
           <SearchSelect label="Father" placeholder="Search boar, e.g. B01" options={boars} value={form.watch("fatherId") ?? ""} onChange={(value) => form.setValue("fatherId", value)} />
-          <SearchSelect label="Room" placeholder="Search room, e.g. Room 1" options={pens} value={form.watch("currentPenId") ?? ""} onChange={(value) => form.setValue("currentPenId", value)} />
+          <SearchSelect
+            label="Pen"
+            required
+            placeholder="Search room, e.g. Room 1"
+            options={pens}
+            value={form.watch("currentPenId") ?? ""}
+            onChange={(value) => form.setValue("currentPenId", value, { shouldValidate: true, shouldDirty: true })}
+            error={form.formState.errors.currentPenId}
+          />
           <div className="sm:col-span-2">
             <TextInput label="Notes" type="textarea" placeholder="e.g. Born in Room 1. Sex not confirmed yet." registration={form.register("notes")} />
           </div>
@@ -272,6 +329,7 @@ export function ExitForm({ pigRef }: { pigRef: string }) {
     schema: exitSchema,
     defaultValues: { date: "", type: "TRANSFERRED", notes: "" },
     successMessage: "Status updated",
+    successHref: "/pigs",
   });
   return (
     <form onSubmit={onSubmit} className="w-full">
@@ -295,24 +353,31 @@ export function BreedingForm({ sows, boars, presetSowId = "" }: { sows: SelectOp
     url: "/api/breeding",
     schema: breedingSchema,
     defaultValues: { sowId: presetSowId, boarId: "", breedingDate: "", method: "NATURAL", notes: "" },
-    successMessage: "Breeding recorded",
-    successHref: "/breeding",
+    successMessage: "Serving recorded",
+    successHref: "/serving",
   });
   return (
     <form onSubmit={onSubmit} className="w-full">
-      <FormCard title="Record breeding">
+      <FormCard title="Record serving">
         <FormError message={error} />
         <div className="grid gap-4 sm:grid-cols-2">
-          <SearchSelect label="Sow" placeholder="Search sow, e.g. S01" options={sows} value={form.watch("sowId")} onChange={(value) => form.setValue("sowId", value)} />
+          <SearchSelect label="Sow" required placeholder="Search sow, e.g. S01" options={sows} value={form.watch("sowId")} onChange={(value) => form.setValue("sowId", value)} />
           <SearchSelect label="Boar" placeholder="Search boar, e.g. B01" options={boars} value={form.watch("boarId") ?? ""} onChange={(value) => form.setValue("boarId", value)} />
-          <TextInput label="Breeding date" type="date" registration={form.register("breedingDate")} error={form.formState.errors.breedingDate} />
-          <SelectField label="Method" registration={form.register("method")} options={BREEDING_METHODS.map((value) => ({ value, label: labelize(value) }))} />
+          <TextInput label="Served on" type="date" registration={form.register("breedingDate")} error={form.formState.errors.breedingDate} />
+          <SelectField
+            label="Method"
+            registration={form.register("method")}
+            options={[
+              { value: "NATURAL", label: "Natural service" },
+              { value: "ARTIFICIAL_INSEMINATION", label: "Artificial insemination" },
+            ]}
+          />
           <div className="sm:col-span-2">
             <TextInput label="Notes" type="textarea" placeholder="e.g. Natural service in Room 4" registration={form.register("notes")} />
           </div>
         </div>
-        <p className="text-sm text-stone-500">Expected farrowing is calculated from the farm gestation setting.</p>
-        <Button type="submit" className="w-full sm:w-auto" disabled={pending}>{pending ? "Saving..." : "Save breeding"}</Button>
+        <p className="text-sm text-stone-500">Due to farrow is the served-on date plus the farm gestation length.</p>
+        <Button type="submit" className="w-full sm:w-auto" disabled={pending}>{pending ? "Saving..." : "Save serving"}</Button>
       </FormCard>
     </form>
   );
@@ -333,7 +398,7 @@ export function LitterForm({ sows, boars, breeding, presetMotherId = "" }: { sow
         <div className="grid gap-4 sm:grid-cols-2">
           <SearchSelect label="Mother" placeholder="Search sow, e.g. S01" options={sows} value={form.watch("motherId")} onChange={(value) => form.setValue("motherId", value)} />
           <SearchSelect label="Father" placeholder="Search boar, e.g. B01" options={boars} value={form.watch("fatherId") ?? ""} onChange={(value) => form.setValue("fatherId", value)} />
-          <SearchSelect label="Breeding record" placeholder="Search breeding, or leave blank" options={breeding} value={form.watch("breedingId") ?? ""} onChange={(value) => form.setValue("breedingId", value)} />
+          <SearchSelect label="Serving record" placeholder="Search serving, or leave blank" options={breeding} value={form.watch("breedingId") ?? ""} onChange={(value) => form.setValue("breedingId", value)} />
           <TextInput label="Birth date" type="date" registration={form.register("birthDate")} error={form.formState.errors.birthDate} />
           <TextInput label="Born alive" type="number" placeholder="e.g. 10" registration={form.register("bornAlive", numberAs)} error={form.formState.errors.bornAlive} />
           <TextInput label="Stillborn" type="number" placeholder="e.g. 1" registration={form.register("stillborn", numberAs)} error={form.formState.errors.stillborn} />

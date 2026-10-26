@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { goAfterSave } from "@/lib/client-nav";
 import { Input } from "@/components/ui/input";
 
 export function CreateFarmForm() {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -39,8 +38,7 @@ export function CreateFarmForm() {
       setError(json && "error" in json ? json.error?.message ?? "Could not create farm." : "Could not create farm.");
       return;
     }
-    router.push(`/platform/farms/${json.data.farmId}`);
-    router.refresh();
+    goAfterSave(`/platform/farms/${json.data.farmId}`);
   }
 
   return (

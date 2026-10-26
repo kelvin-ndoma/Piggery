@@ -4,8 +4,9 @@ import { AppError } from "@/lib/errors";
 import { toObjectId } from "@/lib/object-id";
 import type { PlatformContext } from "@/lib/platform";
 import { isSuperAdminEmail } from "@/lib/platform";
+import { addDays, todayInTimeZone } from "@/lib/dates";
 import { Farm, type FarmBilling } from "@/models/farm";
-import { PlatformSettings } from "@/models/platform";
+import { FarmInquiry, FarmPayment, PlatformSettings } from "@/models/platform";
 import { Pig } from "@/models/pig";
 import { User } from "@/models/user";
 import { AuditLog } from "@/models/operations";
@@ -13,10 +14,34 @@ import {
   DEFAULT_FARM_SETTINGS,
   DEFAULT_PLATFORM_SETTINGS,
   PLATFORM_SUPERADMIN_EMAIL,
+  type BillingCycle,
+  type BillingPlan,
   type BillingStatus,
   type FarmStatus,
+  type PaymentMethod,
   type PlatformRole,
 } from "@/types/domain";
+
+export type CreateFarmTenantInput = {
+  farmName: string;
+  country?: string;
+  phone?: string;
+  locationNote?: string;
+  ownerName: string;
+  ownerEmail: string;
+  ownerPassword: string;
+  ownerPhone?: string;
+  billing?: {
+    plan: BillingPlan;
+    status: BillingStatus;
+    cycle: BillingCycle;
+    amount: number;
+    currency?: string;
+    notes?: string;
+    nextBillingOn?: string | null;
+    paidThroughOn?: string | null;
+  };
+};
 
 function slugify(name: string): string {
   const base = name
@@ -76,7 +101,7 @@ async function writePlatformAudit(
 }
 
 export async function getPlatformOverview() {
-  const [farms, users, activePigs, pausedFarms, suspendedFarms, pastDue, recentFarms, admins] =
+  const [farms, users, activePigs, pausedFarms, suspendedFarms, pastDue, recentFarms, admins, openInquiries] =
     await Promise.all([
       Farm.countDocuments(),
       User.countDocuments({ isActive: true }),
@@ -86,6 +111,7 @@ export async function getPlatformOverview() {
       Farm.countDocuments({ "billing.status": "PAST_DUE" }),
       Farm.find().sort({ createdAt: -1 }).limit(8).lean(),
       User.countDocuments({ platformRole: { $in: ["SUPERADMIN", "ADMIN"] }, isActive: true }),
+      FarmInquiry.countDocuments({ status: "OPEN" }),
     ]);
 
   const farmIds = recentFarms.map((farm) => farm._id);
@@ -111,6 +137,7 @@ export async function getPlatformOverview() {
       users,
       activePigs,
       admins,
+      openInquiries,
     },
     recentFarms: recentFarms.map((farm) => {
       const owner = owners.find((user) =>
@@ -190,7 +217,7 @@ export async function listPlatformFarms() {
 }
 
 export async function listBillingFarms() {
-  const farms = await listPlatformFarms();
+  const [farms, payments] = await Promise.all([listPlatformFarms(), listRecentFarmPayments()]);
   return {
     summary: {
       current: farms.filter((farm) => farm.billing.status === "CURRENT").length,
@@ -202,6 +229,7 @@ export async function listBillingFarms() {
         .reduce((sum, farm) => sum + (farm.billing.cycle === "MONTHLY" ? farm.billing.amount : farm.billing.amount / 12), 0),
     },
     farms,
+    payments,
   };
 }
 
@@ -230,6 +258,7 @@ export async function getPlatformFarm(id: string) {
     locationNote: farm.locationNote ?? "",
     status: (farm.status ?? "ACTIVE") as FarmStatus,
     billing: billingView(farm.billing),
+    payments: await listFarmPayments(String(farm._id)),
     demoSeed: farm.demoSeed,
     settings: farm.settings,
     activePigs,
@@ -256,19 +285,7 @@ export async function getPlatformFarm(id: string) {
   };
 }
 
-export async function createFarmTenant(
-  ctx: PlatformContext,
-  input: {
-    farmName: string;
-    country?: string;
-    phone?: string;
-    locationNote?: string;
-    ownerName: string;
-    ownerEmail: string;
-    ownerPassword: string;
-    ownerPhone?: string;
-  },
-) {
+export async function createFarmTenant(ctx: PlatformContext, input: CreateFarmTenantInput) {
   const settings = await getPlatformSettings();
   const email = input.ownerEmail.toLowerCase().trim();
   const slug = await uniqueSlug(input.farmName);
@@ -280,12 +297,14 @@ export async function createFarmTenant(
     locationNote: input.locationNote,
     status: "ACTIVE",
     billing: {
-      plan: "STARTER",
-      status: "TRIAL",
-      cycle: "MONTHLY",
-      amount: 0,
-      currency: settings.billingCurrency,
-      notes: "",
+      plan: input.billing?.plan ?? "STARTER",
+      status: input.billing?.status ?? "TRIAL",
+      cycle: input.billing?.cycle ?? "MONTHLY",
+      amount: input.billing?.amount ?? 0,
+      currency: input.billing?.currency ?? settings.billingCurrency,
+      notes: input.billing?.notes ?? "",
+      nextBillingOn: input.billing?.nextBillingOn ?? null,
+      paidThroughOn: input.billing?.paidThroughOn ?? null,
     },
     demoSeed: false,
     settings: {
@@ -374,6 +393,85 @@ export async function updateFarmBilling(
     by: ctx.userEmail,
   });
   return { id: String(farm._id), billing: billingView(farm.billing) };
+}
+
+export async function listFarmPayments(farmId: string) {
+  const rows = await FarmPayment.find({ farmId: toObjectId(farmId) }).sort({ paidOn: -1, createdAt: -1 }).limit(50).lean();
+  return rows.map((row) => ({
+    id: String(row._id),
+    amount: row.amount,
+    currency: row.currency,
+    method: row.method,
+    reference: row.reference ?? "",
+    paidOn: row.paidOn,
+    note: row.note ?? "",
+    recordedByEmail: row.recordedByEmail,
+  }));
+}
+
+export async function listRecentFarmPayments() {
+  const rows = await FarmPayment.find().sort({ createdAt: -1 }).limit(20).lean();
+  const farmIds = [...new Set(rows.map((row) => String(row.farmId)))];
+  const farms = await Farm.find({ _id: { $in: farmIds.map((id) => toObjectId(id)) } }).select("name").lean();
+  const names = new Map(farms.map((farm) => [String(farm._id), farm.name]));
+  return rows.map((row) => ({
+    id: String(row._id),
+    farmId: String(row.farmId),
+    farmName: names.get(String(row.farmId)) ?? "Farm",
+    amount: row.amount,
+    currency: row.currency,
+    method: row.method,
+    reference: row.reference ?? "",
+    paidOn: row.paidOn,
+    recordedByEmail: row.recordedByEmail,
+  }));
+}
+
+export async function recordFarmPayment(
+  ctx: PlatformContext,
+  farmId: string,
+  input: {
+    amount: number;
+    currency: string;
+    method: PaymentMethod;
+    reference?: string;
+    paidOn: string;
+    note?: string;
+  },
+) {
+  const farm = await Farm.findById(toObjectId(farmId));
+  if (!farm) throw new AppError("NOT_FOUND", "Farm tenant not found.", 404);
+  await FarmPayment.create({
+    farmId: farm._id,
+    amount: input.amount,
+    currency: input.currency,
+    method: input.method,
+    reference: input.reference ?? "",
+    paidOn: input.paidOn,
+    note: input.note ?? "",
+    recordedByEmail: ctx.userEmail,
+  });
+  const coverDays = farm.billing.cycle === "YEARLY" ? 365 : 30;
+  const paidThroughOn = addDays(input.paidOn, coverDays);
+  farm.billing.status = "CURRENT";
+  farm.billing.paidThroughOn = paidThroughOn;
+  farm.billing.nextBillingOn = paidThroughOn;
+  if (input.amount > 0) farm.billing.amount = input.amount;
+  if (input.currency) farm.billing.currency = input.currency;
+  const extra = [input.method, input.reference, input.note].filter(Boolean).join(" · ");
+  farm.billing.notes = extra || farm.billing.notes;
+  await farm.save();
+  await writePlatformAudit(ctx, String(farm._id), "platform.farm.payment", "Farm", String(farm._id), {
+    amount: input.amount,
+    method: input.method,
+    paidOn: input.paidOn,
+    by: ctx.userEmail,
+  });
+  return { id: String(farm._id), billing: billingView(farm.billing) };
+}
+
+export function defaultPaidOn(): string {
+  return todayInTimeZone("Africa/Nairobi");
 }
 
 export async function assignFarmOwner(

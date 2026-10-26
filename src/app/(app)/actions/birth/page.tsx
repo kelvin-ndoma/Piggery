@@ -18,7 +18,7 @@ export default async function BirthPage({ searchParams }: { searchParams: Promis
       <LitterForm
         sows={sows}
         boars={boars}
-        breeding={breeding.filter((item) => item.status !== "FARROWED").map((item) => ({ value: item.id, label: `${item.sow} · ${item.breedingDate}`, description: item.status }))}
+        breeding={breeding.filter((item) => item.status !== "FARROWED").map((item) => ({ value: item.id, label: `${item.sow} · served ${item.breedingDate}`, description: item.status }))}
         presetMotherId={query.sow}
       />
     </div>

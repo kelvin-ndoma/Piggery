@@ -5,7 +5,7 @@ import { formatPigId } from "@/lib/ids";
 import { can } from "@/lib/permissions";
 import { assertCanMove, assertPigIdFormat } from "@/lib/rules";
 import { definedIds, toObjectId } from "@/lib/object-id";
-import { escapeRegex } from "@/lib/utils";
+import { escapeRegex, penPurpose } from "@/lib/utils";
 import type { FarmContext } from "@/lib/context";
 import { Building, Pen } from "@/models/farm";
 import { Pig, PigBirth, PigMovement, PigWeight } from "@/models/pig";
@@ -42,13 +42,26 @@ export type PigListItem = {
   status: PigStatus;
   penId: string | null;
   penLabel: string | null;
+  motherLabel: string | null;
   weightKg: number | null;
   adgKg: number | null;
 };
 
+function formatPenLabel(pen: { code: string; name?: string }, block?: string | null) {
+  if (block) return `${block}-${pen.code}`;
+  return pen.name?.includes("-") ? pen.name : `Pen ${pen.code}`;
+}
+
 async function penMap(ctx: FarmContext, ids: ReadonlyArray<import("mongoose").Types.ObjectId | string | null | undefined>) {
   const pens = await Pen.find({ farmId: farmOid(ctx), _id: { $in: definedIds(ids) } }).lean();
-  return new Map(pens.map((pen) => [String(pen._id), pen]));
+  const buildings = await Building.find({ _id: { $in: pens.map((pen) => pen.buildingId) } }).lean();
+  const blocks = new Map(buildings.map((building) => [String(building._id), building.name]));
+  return new Map(
+    pens.map((pen) => [
+      String(pen._id),
+      { ...pen, block: blocks.get(String(pen.buildingId)) ?? "", label: formatPenLabel(pen, blocks.get(String(pen.buildingId))) },
+    ]),
+  );
 }
 
 function toListItem(
@@ -63,10 +76,12 @@ function toListItem(
     category: PigCategory;
     status: PigStatus;
     currentPenId?: unknown;
+    motherId?: unknown;
     currentStats?: { weightKg?: number | null; adgKg?: number | null };
   },
-  pens: Map<string, { code: string; name: string }>,
+  pens: Map<string, { code: string; name: string; label?: string }>,
   currentDay: string,
+  mothers: Map<string, string> = new Map(),
 ): PigListItem {
   const pen = pig.currentPenId ? pens.get(String(pig.currentPenId)) : undefined;
   return {
@@ -81,7 +96,8 @@ function toListItem(
     category: pig.category,
     status: pig.status,
     penId: pig.currentPenId ? String(pig.currentPenId) : null,
-    penLabel: pen ? `${pen.code} · ${pen.name}` : null,
+    penLabel: pen?.label ?? (pen ? formatPenLabel(pen) : null),
+    motherLabel: pig.motherId ? mothers.get(String(pig.motherId)) ?? null : null,
     weightKg: pig.currentStats?.weightKg ?? null,
     adgKg: pig.currentStats?.adgKg ?? null,
   };
@@ -116,9 +132,13 @@ export async function listPigs(
     ctx,
     pigs.map((pig) => pig.currentPenId),
   );
+  const motherDocs = await Pig.find({ farmId, _id: { $in: definedIds(pigs.map((pig) => pig.motherId)) } })
+    .select("pigId")
+    .lean();
+  const mothers = new Map(motherDocs.map((pig) => [String(pig._id), pig.pigId]));
   const currentDay = today(ctx);
   return {
-    pigs: pigs.map((pig) => toListItem(pig, pens, currentDay)),
+    pigs: pigs.map((pig) => toListItem(pig, pens, currentDay, mothers)),
     total,
     page,
     pageCount: Math.max(1, Math.ceil(total / limit)),
@@ -159,8 +179,11 @@ export async function createPig(ctx: FarmContext, input: CreatePigInput) {
   if (motherId && fatherId && motherId.equals(fatherId)) {
     throw new AppError("VALIDATION_ERROR", "The mother and father must be different pigs.", 400);
   }
-  const pen = input.currentPenId ? await requirePen(ctx, input.currentPenId) : null;
-  if (pen) await assertPenCapacity(ctx, pen, 1, Boolean(input.confirmOverCapacity));
+  if (!input.earTag?.trim()) {
+    throw new AppError("VALIDATION_ERROR", "Enter an ear tag.", 400);
+  }
+  const pen = await requirePen(ctx, input.currentPenId);
+  await assertPenCapacity(ctx, pen, 1, Boolean(input.confirmOverCapacity));
 
   const pigId = input.pigId?.trim().toUpperCase();
   if (pigId) assertPigIdFormat(pigId);
@@ -182,7 +205,7 @@ export async function createPig(ctx: FarmContext, input: CreatePigInput) {
       const doc = await Pig.create({
         farmId,
         pigId: allocated,
-        earTag: input.earTag,
+        earTag: input.earTag.trim(),
         qrCode: allocated,
         sex: input.sex,
         breed: input.breed,
@@ -190,7 +213,7 @@ export async function createPig(ctx: FarmContext, input: CreatePigInput) {
         source: input.source,
         motherId,
         fatherId,
-        currentPenId: pen?._id,
+        currentPenId: pen._id,
         category: input.category,
         status: "ACTIVE",
         acquisition: acquisition.date || acquisition.supplier || acquisition.price ? acquisition : undefined,
@@ -198,17 +221,15 @@ export async function createPig(ctx: FarmContext, input: CreatePigInput) {
         notes: input.notes,
         clientTransactionId: input.clientTransactionId,
       });
-      if (pen) {
-        await PigMovement.create({
-          farmId,
-          pigId: doc._id,
-          toPenId: pen._id,
-          date: currentDay,
-          reason: "OTHER",
-          notes: "Placed on registration",
-          ...actor(ctx),
-        });
-      }
+      await PigMovement.create({
+        farmId,
+        pigId: doc._id,
+        toPenId: pen._id,
+        date: currentDay,
+        reason: "OTHER",
+        notes: "Placed on registration",
+        ...actor(ctx),
+      });
       await writeAudit(ctx, "pig.create", "Pig", String(doc._id), { pigId: doc.pigId, category: doc.category });
       return doc.toObject();
     },
@@ -287,7 +308,7 @@ export async function recordMovement(
   pig.currentPenId = pen._id;
   await pig.save();
   await writeAudit(ctx, "pig.move", "Pig", String(pig._id), { toPen: pen.code, date: input.date });
-  return { pigId: pig.pigId, penLabel: `${pen.code} · ${pen.name}` };
+  return { pigId: pig.pigId, penLabel: formatPenLabel(pen) };
 }
 
 type PigMovementReason = import("@/types/domain").MovementReason;
@@ -376,10 +397,10 @@ export async function getPigDetail(ctx: FarmContext, key: string) {
   const feedTypes = await FeedType.find({ _id: { $in: feedRecords.map((record) => record.feedTypeId) } }).lean();
   const feedName = new Map(feedTypes.map((item) => [String(item._id), item.name]));
 
-  const penLabel = (id: unknown) => {
+  const penName = (id: unknown) => {
     if (!id) return "No pen";
     const pen = pens.get(String(id));
-    return pen ? `${pen.code} · ${pen.name}` : "Unknown pen";
+    return pen?.label ?? (pen ? formatPenLabel(pen) : "Unknown pen");
   };
 
   const timeline = [
@@ -387,11 +408,11 @@ export async function getPigDetail(ctx: FarmContext, key: string) {
       ? [{ id: `born-${pig.pigId}`, date: pig.dateOfBirth, title: litter ? `Born — litter ${litter.litterNumber}` : "Born", detail: pig.source === "BORN_ON_FARM" ? "Born on the farm" : labelSource(pig.source) }]
       : []),
     ...weights.map((weight) => ({ id: String(weight._id), date: weight.date, title: `Weight recorded — ${weight.weightKg} kg`, detail: weight.notes || undefined })),
-    ...movements.map((move) => ({ id: String(move._id), date: move.date, title: move.toPenId ? `Moved from ${penLabel(move.fromPenId)} to ${penLabel(move.toPenId)}` : `Left ${penLabel(move.fromPenId)}`, detail: move.notes || move.reason })),
+    ...movements.map((move) => ({ id: String(move._id), date: move.date, title: move.toPenId ? `Moved from ${penName(move.fromPenId)} to ${penName(move.toPenId)}` : `Left ${penName(move.fromPenId)}`, detail: move.notes || move.reason })),
     ...vaccinations.map((item) => ({ id: String(item._id), date: item.date, title: `Vaccinated — ${vaccineById.get(String(item.vaccineId)) ?? "Vaccine"}`, detail: item.dose })),
     ...incidents.map((item) => ({ id: String(item._id), date: item.date, title: `Health incident — ${item.severity}`, detail: item.symptoms })),
     ...treatments.map((item) => ({ id: String(item._id), date: item.date, title: `Treatment — ${item.product}`, detail: item.dose })),
-    ...breedingAsSow.map((item) => ({ id: String(item._id), date: item.breedingDate, title: `Breeding — ${item.status}`, detail: item.method })),
+    ...breedingAsSow.map((item) => ({ id: String(item._id), date: item.breedingDate, title: `Served — ${item.status}`, detail: item.method })),
     ...(mortality ? [{ id: String(mortality._id), date: mortality.date, title: "Mortality recorded", detail: mortality.suspectedCause || mortality.confirmedCause || undefined }] : []),
     ...sales.map((sale) => ({ id: String(sale._id), date: sale.date, title: `Sold to ${sale.buyerName}`, detail: undefined })),
   ].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
@@ -431,8 +452,8 @@ export async function getPigDetail(ctx: FarmContext, key: string) {
     movements: movements.map((move) => ({
       id: String(move._id),
       date: move.date,
-      fromLabel: penLabel(move.fromPenId),
-      toLabel: move.toPenId ? penLabel(move.toPenId) : "Off farm",
+      fromLabel: penName(move.fromPenId),
+      toLabel: move.toPenId ? penName(move.toPenId) : "Off farm",
       reason: move.reason,
       notes: move.notes ?? "",
     })),
@@ -495,7 +516,7 @@ export async function getPigDetail(ctx: FarmContext, key: string) {
       date: record.date,
       feedName: feedName.get(String(record.feedTypeId)) ?? "Feed",
       quantityKg: record.quantityKg,
-      penLabel: penLabel(record.penId),
+      penLabel: penName(record.penId),
     })),
     timeline,
     sales: sales.map((sale) => ({
@@ -522,8 +543,8 @@ export async function housingOptions(ctx: FarmContext) {
   const buildingName = new Map(buildings.map((building) => [String(building._id), building.name]));
   return pens.map((pen) => ({
     value: String(pen._id),
-    label: `${pen.code} · ${pen.name}`,
-    keywords: `${pen.code} ${pen.name} ${pen.type}`,
-    description: `${buildingName.get(String(pen.buildingId)) ?? "Building"} · ${pen.type}`,
+    label: formatPenLabel(pen, buildingName.get(String(pen.buildingId))),
+    keywords: `${pen.code} ${pen.name} ${buildingName.get(String(pen.buildingId)) ?? ""}`,
+    description: penPurpose(pen.type),
   }));
 }

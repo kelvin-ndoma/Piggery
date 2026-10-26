@@ -27,7 +27,7 @@ const DUPLICATE_MESSAGES: Record<string, string> = {
   email: "A user with that email already exists.",
   clientTransactionId: "This record was already saved.",
   slug: "A farm with that name already exists.",
-  code: "That code is already used.",
+  code: "That pen already exists in this block.",
 };
 
 export function duplicateField(error: unknown): string | null {

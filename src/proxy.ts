@@ -8,8 +8,11 @@ export function proxy(request: NextRequest) {
   const token =
     request.cookies.get("authjs.session-token") ??
     request.cookies.get("__Secure-authjs.session-token");
-  if (!token && pathname !== "/login") {
-    return NextResponse.redirect(new URL("/login", request.url));
+  const publicPath = pathname === "/" || pathname === "/login";
+  if (!token && !publicPath) {
+    const login = new URL("/login", request.url);
+    login.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+    return NextResponse.redirect(login);
   }
   return NextResponse.next();
 }

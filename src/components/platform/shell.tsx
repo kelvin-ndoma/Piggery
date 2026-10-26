@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Building2,
   CreditCard,
+  Inbox,
   LayoutDashboard,
   LogOut,
   Plus,
@@ -16,6 +17,7 @@ import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/platform", label: "Overview", icon: LayoutDashboard },
+  { href: "/platform/inquiries", label: "Inquiries", icon: Inbox },
   { href: "/platform/farms", label: "Farms", icon: Building2 },
   { href: "/platform/billing", label: "Billing", icon: CreditCard },
   { href: "/platform/admins", label: "Admin team", icon: Users },
@@ -26,10 +28,12 @@ const LINKS = [
 export function PlatformShell({
   userName,
   userEmail,
+  pendingInquiries = 0,
   children,
 }: {
   userName: string;
   userEmail: string;
+  pendingInquiries?: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -68,6 +72,11 @@ export function PlatformShell({
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 {link.label}
+                {link.href === "/platform/inquiries" && pendingInquiries > 0 ? (
+                  <span className="ml-auto rounded-full bg-white px-1.5 py-0.5 text-[11px] font-semibold leading-none text-primary">
+                    {pendingInquiries}
+                  </span>
+                ) : null}
               </Link>
             );
           })}

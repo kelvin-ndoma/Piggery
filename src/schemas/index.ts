@@ -57,15 +57,18 @@ const nonNegative = (label: string) => z.number().min(0, `${label} cannot be neg
 
 export const createPigSchema = z.object({
   pigId: z.string().trim().toUpperCase().optional().or(z.literal("")).transform((value) => value || undefined),
-  earTag: optionalText(40),
-  sex: z.enum(PIG_SEX),
+  earTag: z.string().trim().min(1, "Enter an ear tag").max(40),
+  sex: z.enum(PIG_SEX, { error: "Choose sex" }),
   breed: z.string().trim().min(1, "Enter a breed").max(80),
   dateOfBirth: optionalDate,
-  source: z.enum(PIG_SOURCE),
+  source: z.enum(PIG_SOURCE, { error: "Choose a source" }),
   motherId: optionalObjectId,
   fatherId: optionalObjectId,
-  currentPenId: optionalObjectId,
-  category: z.enum(PIG_CATEGORY),
+  currentPenId: z
+    .string({ error: "Choose a pen" })
+    .min(1, "Choose a pen")
+    .regex(/^[a-f\d]{24}$/i, "Choose a pen"),
+  category: z.enum(PIG_CATEGORY, { error: "Choose a category" }),
   notes: optionalText(2000),
   acquisitionDate: optionalDate,
   acquisitionSupplier: optionalText(120),
@@ -123,18 +126,39 @@ export const exitSchema = z.object({
 });
 
 export const buildingSchema = z.object({
-  name: z.string().trim().min(1, "Enter a building name").max(120),
-  code: z.string().trim().min(1).max(20),
+  name: z.string().trim().min(1, "Enter a block / house name").max(120),
+  code: z.string().trim().max(20).optional().or(z.literal("")),
   notes: optionalText(1000),
 });
 
 export const penSchema = z.object({
-  buildingId: objectIdSchema,
-  name: z.string().trim().min(1, "Enter a pen name").max(120),
-  code: z.string().trim().min(1).max(20),
-  type: z.enum(PEN_TYPES),
+  block: z.string().trim().min(1, "Enter the block").max(120),
+  buildingId: z
+    .string()
+    .regex(/^[a-f\d]{24}$/i, "Choose a block")
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => value || undefined),
+  code: z.string().trim().min(1, "Enter the pen number").max(20),
+  name: z.string().trim().max(120).optional().or(z.literal("")),
+  type: z.enum(PEN_TYPES).optional(),
   capacity: z.number().int().min(0).optional().nullable(),
   notes: optionalText(1000),
+  groupBornOn: optionalDate,
+  groupAgeNote: optionalText(80),
+  motherId: optionalObjectId,
+});
+
+export const updatePenSchema = z.object({
+  type: z.enum(PEN_TYPES).optional(),
+  capacity: z.number().int().min(0).optional().nullable(),
+  notes: optionalText(1000),
+  groupBornOn: clearableDate,
+  groupAgeNote: optionalText(80),
+  motherId: z
+    .union([objectIdSchema, z.literal(""), z.null()])
+    .optional()
+    .transform((value) => (value === undefined ? undefined : value || null)),
 });
 
 export const activeSchema = z.object({ isActive: z.boolean() });
@@ -475,6 +499,47 @@ export const createPlatformAdminSchema = z.object({
 export const updatePlatformAdminSchema = z.object({
   isActive: z.boolean().optional(),
   role: z.enum(["ADMIN", "SUPERADMIN"]).optional(),
+});
+
+export const createInquirySchema = z.object({
+  name: z.string().trim().min(1, "Enter your name").max(120),
+  email: z.email("Enter a valid email"),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^$|^\+?[0-9][0-9\s-]{7,18}$/, "Enter a valid phone number")
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => value || undefined),
+  farmName: z.string().trim().min(2, "Enter the farm name").max(160),
+  country: z.string().trim().min(2).max(80).optional().or(z.literal("")).transform((value) => value || "Kenya"),
+  locationNote: optionalText(300),
+  herdNote: optionalText(300),
+  plan: z.enum(["FREE", "STARTER", "GROWTH", "ENTERPRISE"]),
+  cycle: z.enum(["MONTHLY", "YEARLY"]).default("MONTHLY"),
+  message: optionalText(2000),
+});
+
+export const acceptInquirySchema = z.object({
+  ownerPassword: z.string().min(8, "Use at least 8 characters"),
+  plan: z.enum(["FREE", "STARTER", "GROWTH", "ENTERPRISE", "CUSTOM"]),
+  cycle: z.enum(["MONTHLY", "YEARLY"]),
+  amount: z.coerce.number().min(0).max(10_000_000),
+  status: z.enum(["TRIAL", "CURRENT", "COMPED"]),
+  notes: optionalText(1000),
+});
+
+export const declineInquirySchema = z.object({
+  reviewNote: z.string().trim().min(2, "Say why this inquiry is declined").max(1000),
+});
+
+export const recordFarmPaymentSchema = z.object({
+  amount: z.coerce.number().min(0).max(10_000_000),
+  currency: z.string().trim().length(3).transform((value) => value.toUpperCase()),
+  method: z.enum(["MPESA", "BANK", "CASH", "OTHER"]),
+  reference: optionalText(120),
+  paidOn: dateSchema,
+  note: optionalText(1000),
 });
 
 export type CreatePigInput = z.infer<typeof createPigSchema>;

@@ -12,8 +12,6 @@ import {
   Menu,
   PawPrint,
   Plus,
-  QrCode,
-  Receipt,
   Settings,
   Sprout,
   Syringe,
@@ -32,18 +30,14 @@ const ICONS: Record<IconName, LucideIcon> = {
   home: House,
   pigs: PawPrint,
   health: HeartPulse,
-  growth: LineChart,
   breeding: Sprout,
   litters: PawPrint,
   syringe: Syringe,
   feed: Wheat,
   visits: ClipboardList,
-  housing: Warehouse,
-  sales: Receipt,
-  expenses: Receipt,
+  pen: Warehouse,
   reports: LineChart,
   bell: Bell,
-  scan: QrCode,
   team: Users,
   settings: Settings,
   profile: UserRound,
@@ -142,9 +136,6 @@ export function AppShell({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
-            <Link href="/scan" className="inline-flex h-11 w-11 items-center justify-center rounded-xl border bg-white" aria-label="Scan pig">
-              <QrCode className="h-4 w-4" />
-            </Link>
             <Link href="/notifications" className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border bg-white" aria-label="Alerts">
               <Bell className="h-4 w-4" />
               {unread > 0 ? <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-600" /> : null}

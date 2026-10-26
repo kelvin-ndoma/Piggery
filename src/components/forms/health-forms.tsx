@@ -18,6 +18,7 @@ export function VaccinationAction({ pigs, vaccines, preset }: { pigs: SelectOpti
     schema: vaccinationSchema,
     defaultValues: { pigId: preset ?? "", vaccineId: "", date: "", dose: "", batchNumber: "", nextDueDate: "", notes: "", recordAsHistorical: false },
     successMessage: "Vaccination recorded",
+    successHref: "/vaccinations",
   });
   return (
     <form onSubmit={onSubmit} className="w-full">
@@ -77,6 +78,7 @@ export function IncidentAction({ pigs, preset }: { pigs: SelectOption[]; preset?
     schema: incidentSchema,
     defaultValues: { pigId: preset ?? "", date: "", severity: "LOW", symptoms: "", notes: "" },
     successMessage: "Health incident recorded",
+    successHref: "/health",
   });
   return (
     <form onSubmit={onSubmit} className="w-full">
@@ -109,6 +111,7 @@ export function TreatmentForm({ pigs, incidents }: { pigs: SelectOption[]; incid
     schema: treatmentSchema,
     defaultValues: { pigId: "", incidentId: "", date: "", product: "", dose: "", route: "", notes: "" },
     successMessage: "Treatment recorded",
+    successHref: "/health",
   });
   return (
     <form onSubmit={onSubmit} className="w-full">

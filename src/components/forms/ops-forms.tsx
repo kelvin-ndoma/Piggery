@@ -20,7 +20,6 @@ import {
   FEED_CATEGORIES,
   FEED_KINDS,
   OBSERVATION_RATINGS,
-  PEN_TYPES,
   ROLES,
   TASK_PRIORITY,
   TASK_STATUS,
@@ -36,6 +35,7 @@ export function FeedTypeForm() {
     schema: feedTypeSchema,
     defaultValues: { name: "", category: "CUSTOM", costPerKg: 0, reorderLevelKg: 0, notes: "" },
     successMessage: "Feed type saved",
+    successHref: "/feed",
   });
   return (
     <form onSubmit={onSubmit} className="w-full">
@@ -59,6 +59,7 @@ export function FeedRecordForm({ feeds, pens, canPurchase }: { feeds: SelectOpti
     schema: feedRecordSchema,
     defaultValues: { date: "", feedTypeId: "", penId: "", kind: "CONSUMPTION", notes: "" },
     successMessage: "Feed recorded",
+    successHref: "/feed",
   });
   const kinds = FEED_KINDS.filter((kind) => canPurchase || kind === "CONSUMPTION");
   return (
@@ -232,21 +233,21 @@ export function BuildingForm() {
   const { form, error, pending, onSubmit } = useRecordForm({
     url: "/api/buildings",
     schema: buildingSchema,
-    defaultValues: { name: "", code: "", notes: "" },
-    successMessage: "Building saved",
+    defaultValues: { name: "" },
+    successMessage: "Block / house saved",
   });
   return (
     <form onSubmit={onSubmit} className="w-full">
-      <FormCard title="New building">
+      <FormCard title="New block / house">
         <FormError message={error} />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <TextInput label="Name" placeholder="e.g. Rooms 1–9" registration={form.register("name")} />
-          <TextInput label="Code" placeholder="e.g. R19" registration={form.register("code")} />
-          <div className="sm:col-span-2">
-            <TextInput label="Notes" placeholder="e.g. Older block" registration={form.register("notes")} />
-          </div>
-        </div>
-        <Button type="submit" className="w-full sm:w-auto" disabled={pending}>{pending ? "Saving..." : "Save building"}</Button>
+        <TextInput
+          label="Block / house"
+          required
+          placeholder="e.g. Block A"
+          registration={form.register("name")}
+          error={form.formState.errors.name}
+        />
+        <Button type="submit" className="w-full sm:w-auto" disabled={pending}>{pending ? "Saving..." : "Save block / house"}</Button>
       </FormCard>
     </form>
   );
@@ -256,7 +257,7 @@ export function PenForm({ buildings }: { buildings: SelectOption[] }) {
   const { form, error, pending, onSubmit } = useRecordForm({
     url: "/api/pens",
     schema: penSchema,
-    defaultValues: { buildingId: "", name: "", code: "", type: "MIXED", notes: "" },
+    defaultValues: { block: buildings[0]?.label ?? "", code: "" },
     successMessage: "Pen saved",
   });
   return (
@@ -264,13 +265,20 @@ export function PenForm({ buildings }: { buildings: SelectOption[] }) {
       <FormCard title="New pen">
         <FormError message={error} />
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <SearchSelect label="Building" placeholder="Search building" options={buildings} value={form.watch("buildingId")} onChange={(value) => form.setValue("buildingId", value)} />
-          </div>
-          <TextInput label="Name" placeholder="e.g. Room 5" registration={form.register("name")} />
-          <TextInput label="Code" placeholder="e.g. 5" registration={form.register("code")} />
-          <SelectField label="Type" registration={form.register("type")} options={PEN_TYPES.map((value) => ({ value, label: labelize(value) }))} />
-          <TextInput label="Capacity" type="number" placeholder="e.g. 10" registration={form.register("capacity", numberAs)} />
+          <TextInput
+            label="Block"
+            required
+            placeholder="e.g. A"
+            registration={form.register("block")}
+            error={form.formState.errors.block}
+          />
+          <TextInput
+            label="Number"
+            required
+            placeholder="e.g. 1"
+            registration={form.register("code")}
+            error={form.formState.errors.code}
+          />
         </div>
         <Button type="submit" className="w-full sm:w-auto" disabled={pending}>{pending ? "Saving..." : "Save pen"}</Button>
       </FormCard>
@@ -312,7 +320,7 @@ export function SettingsForm({
           </div>
           <TextInput label="Timezone" placeholder="e.g. Africa/Nairobi" registration={form.register("timezone")} hint="Example: Africa/Nairobi" />
           <TextInput label="Currency" placeholder="e.g. KES" registration={form.register("currency")} hint="Example: KES" />
-          <TextInput label="Gestation length (days)" type="number" placeholder="e.g. 114" registration={form.register("gestationDays", numberAs)} hint="Expected farrowing is the breeding date plus this many days. 114 is the usual swine gestation length." />
+          <TextInput label="Gestation length (days)" type="number" placeholder="e.g. 114" registration={form.register("gestationDays", numberAs)} hint="Due to farrow is the served-on date plus this many days. 114 is the usual swine gestation length." />
           <TextInput label="Farrowing horizon (days)" type="number" placeholder="e.g. 14" registration={form.register("farrowingHorizonDays", numberAs)} />
           <TextInput label="Maximum weight (kg)" type="number" placeholder="e.g. 400" registration={form.register("maxWeightKg", numberAs)} />
           <TextInput label="Maximum daily gain (kg)" type="number" placeholder="e.g. 2" registration={form.register("maxDailyGainKg", numberAs)} hint="Faster gains are rejected unless an authorised user confirms the measurement." />
@@ -329,6 +337,7 @@ export function UserForm() {
     schema: createUserSchema,
     defaultValues: { name: "", email: "", password: "", phone: "", role: "FARM_WORKER" },
     successMessage: "User created",
+    successHref: "/team",
   });
   return (
     <form onSubmit={onSubmit} className="w-full">
@@ -360,7 +369,7 @@ export function BreedingStatusButtons({ id }: { id: string }) {
     });
     const payload = (await response.json()) as { success: boolean; error?: { message: string } };
     setPending(false);
-    if (!payload.success) setMessage(payload.error?.message ?? "Could not update breeding.");
+    if (!payload.success) setMessage(payload.error?.message ?? "Could not update serving.");
     else window.location.reload();
   }
   return (

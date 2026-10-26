@@ -15,6 +15,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.AUTH_URL ?? "http://localhost:3000"),
   title: { default: "Piggery", template: "%s · Piggery" },
   description: "Farm management for pig herds.",
   applicationName: "Piggery",

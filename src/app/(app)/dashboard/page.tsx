@@ -4,7 +4,7 @@ import { EmptyState } from "@/components/empty-state";
 import { QUICK_ACTIONS } from "@/components/layout/nav";
 import { can } from "@/lib/permissions";
 import { requireFarmContext } from "@/lib/context";
-import { formatGain, formatMoney, formatNumber, formatWeight } from "@/lib/format";
+import { formatNumber } from "@/lib/format";
 import { dashboardReport } from "@/services/reports";
 
 export default async function DashboardPage() {
@@ -58,21 +58,16 @@ export default async function DashboardPage() {
               <EmptyState title="No vaccination records yet." action={can(ctx.role, "health:write") ? { href: "/actions/vaccinate", label: "Record vaccination" } : undefined} />
             )}
           </Section>
-          <Section title="Breeding">
+          <Section title="Serving">
             {data.breeding.hasRecords ? (
               <>
-                <Card label="Pregnant sows" value={String(data.breeding.pregnant)} href="/breeding" />
-                <Card label="Expected farrowings" value={String(data.breeding.expectedFarrowings)} hint={`Within ${ctx.farm.settings.farrowingHorizonDays} days, including any overdue`} href="/breeding" />
+                <Card label="Pregnant sows" value={String(data.breeding.pregnant)} href="/serving" />
+                <Card label="Due to farrow" value={String(data.breeding.expectedFarrowings)} hint={`Within ${ctx.farm.settings.farrowingHorizonDays} days, including any overdue`} href="/serving" />
                 <Card label="Births this month" value={String(data.breeding.birthsThisMonth)} hint="Piglets born alive" href="/litters" />
               </>
             ) : (
-              <EmptyState title="No breeding records yet." action={can(ctx.role, "breeding:write") ? { href: "/actions/breeding", label: "Record breeding" } : undefined} />
+              <EmptyState title="No serving records yet." action={can(ctx.role, "breeding:write") ? { href: "/actions/serving", label: "Record serving" } : undefined} />
             )}
-          </Section>
-          <Section title="Growth">
-            <Card label="Average weight" value={data.growth.averageWeight === null ? "Not enough data" : formatWeight(data.growth.averageWeight, ctx.farm.settings.weightUnit)} href="/growth" />
-            <Card label="Average daily gain" value={formatGain(data.growth.averageAdg)} href="/growth" />
-            <Card label="Weight gain this month" value={data.growth.gainThisMonth === null ? "Not enough data" : `${formatNumber(data.growth.gainThisMonth)} kg`} href="/growth" />
           </Section>
           <Section title="Feed">
             {data.feed ? (
@@ -85,19 +80,6 @@ export default async function DashboardPage() {
               <EmptyState title="No feed types yet." action={can(ctx.role, "feed:write") ? { href: "/feed", label: "Set up feed" } : undefined} />
             )}
           </Section>
-          {can(ctx.role, "finance:read") ? (
-            <Section title="Financial">
-              {data.financial ? (
-                <>
-                  <Card label="Sales this month" value={formatMoney(data.financial.sales, data.currency)} href="/sales" />
-                  <Card label="Expenses this month" value={formatMoney(data.financial.expenses, data.currency)} href="/expenses" />
-                  <Card label="Estimated margin" value={formatMoney(data.financial.margin, data.currency)} hint="Sales minus recorded expenses" href="/reports/financial" />
-                </>
-              ) : (
-                <EmptyState title="No financial records yet." action={can(ctx.role, "finance:write") ? { href: "/actions/sale", label: "Record sale" } : undefined} />
-              )}
-            </Section>
-          ) : null}
         </div>
       )}
     </div>

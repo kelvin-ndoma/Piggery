@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
+import { clearAuthCookies } from "@/lib/auth-cookies";
+
+function signOutRedirect(request: Request) {
+  const response = NextResponse.redirect(new URL("/login", request.url), 303);
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  clearAuthCookies(response, request);
+  return response;
+}
 
 export function GET(request: Request) {
-  const response = NextResponse.redirect(new URL("/login", request.url));
-  const expired = { path: "/", maxAge: 0 };
-  response.cookies.set("authjs.session-token", "", expired);
-  response.cookies.set("__Secure-authjs.session-token", "", expired);
-  return response;
+  return signOutRedirect(request);
+}
+
+export function POST(request: Request) {
+  return signOutRedirect(request);
 }

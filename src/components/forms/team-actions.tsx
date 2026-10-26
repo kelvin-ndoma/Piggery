@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { goAfterSave } from "@/lib/client-nav";
 
 export function RemoveTeamMemberButton({ userId, name }: { userId: string; name: string }) {
-  const router = useRouter();
   const [pending, setPending] = useState(false);
 
   async function onRemove() {
@@ -21,7 +20,7 @@ export function RemoveTeamMemberButton({ userId, name }: { userId: string; name:
         return;
       }
       toast.success(`${name} was removed from the team.`);
-      router.refresh();
+      goAfterSave();
     } catch {
       toast.error("Could not reach the server. Try again.");
     }

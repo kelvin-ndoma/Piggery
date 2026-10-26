@@ -56,9 +56,9 @@ export async function recordBreeding(ctx: FarmContext, input: BreedingInput) {
     throw new AppError("VALIDATION_ERROR", "The sow and boar must be different pigs.", 400);
   }
   const currentDay = today(ctx);
-  assertNotFuture(input.breedingDate, currentDay, "Breeding date");
+  assertNotFuture(input.breedingDate, currentDay, "Serving date");
   if (sow.dateOfBirth && input.breedingDate < sow.dateOfBirth) {
-    throw new AppError("VALIDATION_ERROR", "The breeding date cannot be before the sow's date of birth.", 400);
+    throw new AppError("VALIDATION_ERROR", "The serving date cannot be before the sow's date of birth.", 400);
   }
   const expected = expectedFarrowDate(input.breedingDate, ctx.farm.settings.gestationDays);
   const farmId = farmOid(ctx);
@@ -87,8 +87,8 @@ export async function recordBreeding(ctx: FarmContext, input: BreedingInput) {
     ctx,
     type: "FARROWING",
     title: `Expected farrowing ${expected}`,
-    body: `${sow.pigId} was bred on ${input.breedingDate}. Expected farrowing uses the farm gestation length of ${ctx.farm.settings.gestationDays} days.`,
-    href: "/breeding",
+    body: `${sow.pigId} was served on ${input.breedingDate}. Due to farrow uses the farm gestation length of ${ctx.farm.settings.gestationDays} days.`,
+    href: "/serving",
     dedupeKey: `farrow:${String(record._id)}`,
   });
   return { id: String(record._id), expectedFarrowDate: expected };
@@ -105,15 +105,15 @@ export async function updateBreedingStatus(
   input: { status: "CONFIRMED_PREGNANT" | "NOT_PREGNANT" | "FAILED"; date?: string; note?: string },
 ) {
   const record = await Breeding.findOne({ _id: id, farmId: farmOid(ctx) });
-  if (!record) throw new AppError("NOT_FOUND", "That breeding record was not found.", 404);
+  if (!record) throw new AppError("NOT_FOUND", "That serving record was not found.", 404);
   const allowed = NEXT_STATUS[record.status] ?? [];
   if (!allowed.includes(input.status)) {
-    throw new AppError("VALIDATION_ERROR", "That breeding status cannot be changed in this way.", 400);
+    throw new AppError("VALIDATION_ERROR", "That serving status cannot be changed in this way.", 400);
   }
   const date = input.date ?? today(ctx);
   assertNotFuture(date, today(ctx), "Confirmation date");
   if (date < record.breedingDate) {
-    throw new AppError("VALIDATION_ERROR", "The confirmation date cannot be before the breeding date.", 400);
+    throw new AppError("VALIDATION_ERROR", "The confirmation date cannot be before the serving date.", 400);
   }
   record.statusHistory.push({ status: input.status, at: date, userId: toObjectId(ctx.userId), note: input.note });
   record.status = input.status;
@@ -155,8 +155,8 @@ export async function recordLitter(ctx: FarmContext, input: LitterInput) {
   let breeding = null;
   if (input.breedingId) {
     breeding = await Breeding.findOne({ _id: input.breedingId, farmId, sowId: mother._id });
-    if (!breeding) throw new AppError("VALIDATION_ERROR", "That breeding record does not match this sow.", 400);
-    if (breeding.status === "FARROWED") throw new AppError("CONFLICT", "That breeding has already been farrowed.", 409);
+    if (!breeding) throw new AppError("VALIDATION_ERROR", "That serving record does not match this sow.", 400);
+    if (breeding.status === "FARROWED") throw new AppError("CONFLICT", "That serving has already been farrowed.", 409);
   }
   const litter = await reuseOrCreate(
     async () =>

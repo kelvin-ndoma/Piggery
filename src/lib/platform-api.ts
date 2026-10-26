@@ -1,4 +1,5 @@
 import "server-only";
+import { revalidatePath } from "next/cache";
 import type { ZodType } from "zod";
 import { AppError, toErrorResponse } from "@/lib/errors";
 import { rateLimit } from "@/lib/rate-limit";
@@ -22,6 +23,7 @@ export function platformApiHandler<T>(
       const ctx = await requirePlatformAdminApi();
       if (options.mutation) rateLimit(`platform:${ctx.userId}`, 60, 60_000);
       const data = await handler(req, ctx, route ?? { params: Promise.resolve({}) });
+      if (options.mutation) revalidatePath("/", "layout");
       if (data instanceof Response) return data;
       return platformOk(data);
     } catch (error) {

@@ -17,6 +17,50 @@ export type BillingStatus = (typeof BILLING_STATUSES)[number];
 export const BILLING_CYCLES = ["MONTHLY", "YEARLY"] as const;
 export type BillingCycle = (typeof BILLING_CYCLES)[number];
 
+export const INQUIRY_STATUSES = ["OPEN", "ACCEPTED", "DECLINED"] as const;
+export type InquiryStatus = (typeof INQUIRY_STATUSES)[number];
+
+export const PAYMENT_METHODS = ["MPESA", "BANK", "CASH", "OTHER"] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+export const PUBLIC_BILLING_PLANS = ["FREE", "STARTER", "GROWTH", "ENTERPRISE"] as const;
+export type PublicBillingPlan = (typeof PUBLIC_BILLING_PLANS)[number];
+
+export const BILLING_PLAN_CATALOG = [
+  {
+    plan: "FREE" as const,
+    name: "Free",
+    monthly: 0,
+    yearly: 0,
+    quoted: false,
+    summary: "Try the farm record. No payment.",
+  },
+  {
+    plan: "STARTER" as const,
+    name: "Starter",
+    monthly: 2500,
+    yearly: 25000,
+    quoted: false,
+    summary: "One farm, daily records, and the owner’s team.",
+  },
+  {
+    plan: "GROWTH" as const,
+    name: "Growth",
+    monthly: 6500,
+    yearly: 65000,
+    quoted: false,
+    summary: "A larger herd, more rooms, and more people on the farm.",
+  },
+  {
+    plan: "ENTERPRISE" as const,
+    name: "Enterprise",
+    monthly: 0,
+    yearly: 0,
+    quoted: true,
+    summary: "Several farms or a quoted amount. The platform team sets the price.",
+  },
+] as const;
+
 export const PLATFORM_SUPERADMIN_EMAIL = "kelvinndomamutua@gmail.com";
 
 export const DEFAULT_PLATFORM_SETTINGS = {

@@ -134,6 +134,9 @@ export type PenDoc = {
   capacity?: number | null;
   notes?: string;
   plannedFeedKgPerDay?: number | null;
+  groupBornOn?: string | null;
+  groupAgeNote?: string;
+  motherId?: Types.ObjectId | null;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -149,11 +152,14 @@ const penSchema = new Schema<PenDoc>(
     capacity: { type: Number, min: 0 },
     notes: { type: String, maxlength: 1000 },
     plannedFeedKgPerDay: { type: Number, min: 0 },
+    groupBornOn: { type: String, default: null },
+    groupAgeNote: { type: String, maxlength: 80, default: "" },
+    motherId: { type: Schema.Types.ObjectId, ref: "Pig" },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },
 );
-penSchema.index({ farmId: 1, code: 1 }, { unique: true });
+penSchema.index({ farmId: 1, buildingId: 1, code: 1 }, { unique: true });
 penSchema.index({ farmId: 1, buildingId: 1 });
 penSchema.index({ farmId: 1, type: 1 });
 

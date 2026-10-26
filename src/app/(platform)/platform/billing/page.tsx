@@ -23,7 +23,7 @@ export default async function PlatformBillingPage() {
       <PageHeader
         eyebrow="Platform"
         title="Billing"
-        description="Manual billing ledger for now. Update each farm’s plan, amount, and payment status from the farm page."
+        description="Manual billing ledger. Record M-Pesa, bank, or cash on the farm page. Card payments can come later."
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -72,6 +72,46 @@ export default async function PlatformBillingPage() {
           </tbody>
         </table>
       </div>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Recent payments</h2>
+        {data.payments.length === 0 ? (
+          <p className="rounded-2xl border border-dashed bg-white/60 px-4 py-8 text-center text-sm text-stone-600">
+            No payments recorded yet. Open a farm and use Record a payment.
+          </p>
+        ) : (
+          <div className="overflow-x-auto rounded-2xl border bg-white">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b bg-stone-50 text-xs uppercase tracking-[0.08em] text-stone-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Farm</th>
+                  <th className="px-4 py-3 font-medium">Amount</th>
+                  <th className="px-4 py-3 font-medium">Method</th>
+                  <th className="px-4 py-3 font-medium">Paid on</th>
+                  <th className="px-4 py-3 font-medium">Reference</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.payments.map((payment) => (
+                  <tr key={payment.id} className="border-b last:border-0">
+                    <td className="px-4 py-3">
+                      <Link href={`/platform/farms/${payment.farmId}`} className="font-medium text-primary hover:underline">
+                        {payment.farmName}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      {payment.amount.toLocaleString()} {payment.currency}
+                    </td>
+                    <td className="px-4 py-3">{payment.method}</td>
+                    <td className="px-4 py-3">{payment.paidOn}</td>
+                    <td className="px-4 py-3 text-stone-600">{payment.reference || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

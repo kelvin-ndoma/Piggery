@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { goAfterSave } from "@/lib/client-nav";
 
 const STATUSES = [
   { value: "ACTIVE", label: "Active" },
@@ -18,7 +18,6 @@ export function FarmStatusControls({
   farmId: string;
   status: "ACTIVE" | "PAUSED" | "SUSPENDED";
 }) {
-  const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
 
   async function setStatus(next: (typeof STATUSES)[number]["value"]) {
@@ -30,7 +29,7 @@ export function FarmStatusControls({
       body: JSON.stringify({ status: next }),
     });
     setPending(null);
-    router.refresh();
+    goAfterSave();
   }
 
   return (
@@ -67,7 +66,6 @@ export function FarmBillingForm({
     notes: string;
   };
 }) {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -99,7 +97,7 @@ export function FarmBillingForm({
       setError(json && "error" in json ? json.error?.message ?? "Could not save billing." : "Could not save billing.");
       return;
     }
-    router.refresh();
+    goAfterSave();
   }
 
   return (
@@ -168,7 +166,6 @@ export function FarmBillingForm({
 }
 
 export function AssignOwnerForm({ farmId }: { farmId: string }) {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -197,7 +194,7 @@ export function AssignOwnerForm({ farmId }: { farmId: string }) {
       return;
     }
     event.currentTarget.reset();
-    router.refresh();
+    goAfterSave();
   }
 
   return (

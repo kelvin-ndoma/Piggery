@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { goAfterSave } from "@/lib/client-nav";
 
 type AdminRow = {
   id: string;
@@ -23,7 +23,6 @@ export function AdminTeamPanel({
   admins: AdminRow[];
   canManage: boolean;
 }) {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -48,7 +47,7 @@ export function AdminTeamPanel({
       setError(json && "error" in json ? json.error?.message ?? "Could not update admin." : "Could not update admin.");
       return false;
     }
-    router.refresh();
+    goAfterSave();
     return true;
   }
 
@@ -84,7 +83,7 @@ export function AdminTeamPanel({
     }
     form.reset();
     setOk(`Admin added for ${email}. Temporary password: ${password}`);
-    router.refresh();
+    goAfterSave();
   }
 
   return (

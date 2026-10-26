@@ -18,6 +18,21 @@ export function labelize(value: string): string {
     .join(" ");
 }
 
+export function penPurpose(type: string): string {
+  if (type === "GROWER") return "Growers";
+  if (type === "SOW") return "Sows";
+  if (type === "BOAR") return "Boar";
+  if (type === "FARROWING") return "Farrowing";
+  if (type === "MIXED") return "Mixed";
+  return labelize(type);
+}
+
+export function servingMethodLabel(method: string): string {
+  if (method === "NATURAL") return "Natural service";
+  if (method === "ARTIFICIAL_INSEMINATION") return "Artificial insemination";
+  return labelize(method);
+}
+
 export function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

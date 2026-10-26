@@ -1,6 +1,5 @@
 "use client";
 
-import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { FormCard, FormError, TextInput } from "@/components/forms/fields";
 import { useRecordForm } from "@/components/forms/use-record-form";
@@ -53,8 +52,8 @@ export function ChangePasswordForm() {
 
 export function SignOutButton() {
   return (
-    <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => signOut({ callbackUrl: "/login" })}>
-      Sign out
+    <Button asChild variant="outline" className="w-full sm:w-auto">
+      <a href="/api/session/reset">Sign out</a>
     </Button>
   );
 }

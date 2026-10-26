@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode, SelectHTMLAttributes } from "react";
 import type { FieldError, UseFormRegisterReturn } from "react-hook-form";
 import { Input } from "@/components/ui/input";
@@ -12,17 +12,22 @@ export function Field({
   label,
   error,
   hint,
+  required,
   children,
 }: {
   label: string;
   error?: FieldError | string;
   hint?: string;
+  required?: boolean;
   children: ReactNode;
 }) {
   const message = typeof error === "string" ? error : error?.message;
   return (
     <label className="block space-y-1.5">
-      <span className="text-sm font-medium text-stone-800">{label}</span>
+      <span className="text-sm font-medium text-stone-800">
+        {label}
+        {required ? <span className="text-rose-700"> *</span> : null}
+      </span>
       {children}
       {hint ? <span className="block text-xs text-stone-500">{hint}</span> : null}
       {message ? <span className="block text-sm text-rose-700">{message}</span> : null}
@@ -36,15 +41,17 @@ export function SelectField({
   options,
   placeholder = "Choose",
   error,
+  required,
 }: {
   label: string;
   registration: UseFormRegisterReturn;
   options: Array<{ value: string; label: string }>;
   placeholder?: string;
   error?: FieldError;
+  required?: boolean;
 }) {
   return (
-    <Field label={label} error={error}>
+    <Field label={label} error={error} required={required}>
       <select
         {...registration}
         className="h-11 w-full rounded-xl border border-input bg-white px-3 text-base shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -78,42 +85,94 @@ export function SearchSelect({
   value,
   onChange,
   error,
+  required,
   placeholder = "Search by ID, e.g. S01",
+  emptyLabel = "Not recorded",
 }: {
   label: string;
   options: SelectOption[];
   value: string;
   onChange: (value: string) => void;
-  error?: string;
+  error?: FieldError | string;
+  required?: boolean;
   placeholder?: string;
+  emptyLabel?: string;
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [typing, setTyping] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const selected = options.find((option) => option.value === value);
   const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
+    const needle = typing ? query.trim().toLowerCase() : "";
     if (!needle) return options.slice(0, 100);
     return options
       .filter((option) => `${option.label} ${option.keywords ?? ""} ${option.description ?? ""}`.toLowerCase().includes(needle))
       .slice(0, 100);
-  }, [options, query]);
+  }, [options, query, typing]);
+
+  function close() {
+    setOpen(false);
+    setTyping(false);
+    setQuery("");
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) close();
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") close();
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   return (
-    <Field label={label} error={error}>
-      <div className="relative">
+    <Field label={label} error={error} required={required}>
+      <div className="relative" ref={rootRef}>
         <Input
-          value={open ? query : (selected?.label ?? "")}
+          value={open && typing ? query : (selected?.label ?? "")}
           placeholder={placeholder}
-          onFocus={() => {
+          onFocus={() => setOpen(true)}
+          onChange={(event) => {
+            setTyping(true);
+            setQuery(event.target.value);
             setOpen(true);
-            setQuery("");
           }}
-          onChange={(event) => setQuery(event.target.value)}
           aria-expanded={open}
           aria-autocomplete="list"
         />
         {open ? (
           <ul className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-xl border bg-white shadow-lg" role="listbox">
+            <li>
+              <button
+                type="button"
+                className="flex min-h-11 w-full items-center px-3 py-2 text-left text-sm text-stone-600 hover:bg-muted"
+                onClick={close}
+              >
+                Keep current
+              </button>
+            </li>
+            {!required ? (
+              <li>
+                <button
+                  type="button"
+                  className="flex min-h-11 w-full items-center px-3 py-2 text-left text-sm text-stone-600 hover:bg-muted"
+                  onClick={() => {
+                    onChange("");
+                    close();
+                  }}
+                >
+                  {emptyLabel}
+                </button>
+              </li>
+            ) : null}
             {filtered.length === 0 ? <li className="px-3 py-3 text-sm text-stone-500">No matches</li> : null}
             {filtered.map((option) => (
               <li key={option.value}>
@@ -122,8 +181,7 @@ export function SearchSelect({
                   className="flex min-h-11 w-full flex-col items-start px-3 py-2 text-left hover:bg-muted"
                   onClick={() => {
                     onChange(option.value);
-                    setOpen(false);
-                    setQuery("");
+                    close();
                   }}
                 >
                   <span className="text-sm font-medium">{option.label}</span>
@@ -145,6 +203,7 @@ export function TextInput({
   type = "text",
   hint,
   placeholder,
+  required,
 }: {
   label: string;
   registration: UseFormRegisterReturn;
@@ -152,9 +211,10 @@ export function TextInput({
   type?: string;
   hint?: string;
   placeholder?: string;
+  required?: boolean;
 }) {
   return (
-    <Field label={label} error={error} hint={hint}>
+    <Field label={label} error={error} hint={hint} required={required}>
       {type === "textarea" ? (
         <Textarea placeholder={placeholder} {...registration} />
       ) : (

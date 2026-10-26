@@ -7,7 +7,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function LoginForm() {
+export function LoginForm({ nextPath }: { nextPath?: string | null }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -37,8 +37,9 @@ export function LoginForm() {
       return;
     }
     const home = await fetch("/api/session/home").then((res) => res.json()).catch(() => null);
-    const path =
+    const homePath =
       home && home.success && typeof home.data?.path === "string" ? home.data.path : "/dashboard";
+    const path = homePath === "/platform" && nextPath?.startsWith("/platform") ? nextPath : homePath;
     router.push(path);
     router.refresh();
   }
