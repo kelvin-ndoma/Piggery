@@ -6,8 +6,9 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
   const token =
-    request.cookies.get("authjs.session-token") ??
-    request.cookies.get("__Secure-authjs.session-token");
+    request.cookies.get("__Secure-authjs.session-token") ??
+    request.cookies.get("__Host-authjs.session-token") ??
+    request.cookies.get("authjs.session-token");
   const publicPath = pathname === "/" || pathname === "/login";
   if (!token && !publicPath) {
     const login = new URL("/login", request.url);

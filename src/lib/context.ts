@@ -6,7 +6,7 @@ import { connectDB } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { getOptionalPlatformContext } from "@/lib/platform";
 import { Farm } from "@/models/farm";
-import { User } from "@/models/user";
+import { User, type Membership } from "@/models/user";
 import type { Role } from "@/types/domain";
 
 export type FarmSettingsView = {
@@ -115,9 +115,10 @@ export async function requireFarmContext(): Promise<FarmContext> {
     const platform = await getOptionalPlatformContext();
     if (platform) redirect("/platform");
     await connectDB();
-    const existing = await User.findById(session.user.id).select("_id");
+    const existing = await User.findById(session.user.id).select("memberships");
     if (!existing) redirect("/api/session/reset");
-    redirect("/no-access");
+    const reason = await farmAccessReason(existing.memberships);
+    redirect(reason === "none" ? "/no-access" : `/no-access?reason=${reason}`);
   }
   return context;
 }
@@ -126,6 +127,27 @@ export async function requireFarmContextApi(): Promise<FarmContext> {
   const session = await auth();
   if (!session?.user?.id) throw new AppError("UNAUTHORIZED", "Sign in required.", 401);
   const context = await getOptionalFarmContext();
-  if (!context) throw new AppError("FORBIDDEN", "You do not have access to a farm.", 403);
+  if (!context) {
+    const user = await User.findById(session.user.id).select("memberships");
+    const reason = user ? await farmAccessReason(user.memberships) : "none";
+    if (reason === "paused") {
+      throw new AppError("FORBIDDEN", "This farm is paused. Ask the platform team.", 403);
+    }
+    if (reason === "suspended") {
+      throw new AppError("FORBIDDEN", "This farm is suspended. Ask the platform team.", 403);
+    }
+    throw new AppError("FORBIDDEN", "You do not have access to a farm.", 403);
+  }
   return context;
+}
+
+async function farmAccessReason(memberships: Membership[]) {
+  const active = memberships.filter((membership) => membership.status === "ACTIVE");
+  if (active.length === 0) return "none" as const;
+  const farms = await Farm.find({ _id: { $in: active.map((membership) => membership.farmId) } })
+    .select("status")
+    .lean();
+  if (farms.some((farm) => farm.status === "PAUSED")) return "paused" as const;
+  if (farms.some((farm) => farm.status === "SUSPENDED")) return "suspended" as const;
+  return "none" as const;
 }

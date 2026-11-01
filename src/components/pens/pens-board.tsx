@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AddBlockForm, AddPenForm, GrowerBatchForm } from "@/components/pens/pen-forms";
 import { penPurpose } from "@/lib/utils";
 import type { ApiResponse, SelectOption } from "@/types/api";
@@ -33,10 +33,6 @@ export function PensBoard({
   sows: SelectOption[];
 }) {
   const [buildings, setBuildings] = useState(initial);
-
-  useEffect(() => {
-    setBuildings(initial);
-  }, [initial]);
 
   async function reload() {
     const response = await fetch("/api/housing", { cache: "no-store" });

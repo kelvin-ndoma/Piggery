@@ -4,6 +4,7 @@ import { AppError } from "@/lib/errors";
 import { toObjectId } from "@/lib/object-id";
 import type { PlatformContext } from "@/lib/platform";
 import { isSuperAdminEmail } from "@/lib/platform";
+import { connectDB } from "@/lib/db";
 import { addDays, todayInTimeZone } from "@/lib/dates";
 import { Farm, type FarmBilling } from "@/models/farm";
 import { FarmInquiry, FarmPayment, PlatformSettings } from "@/models/platform";
@@ -532,6 +533,7 @@ export async function assignFarmOwner(
 }
 
 export async function getPlatformSettings() {
+  await connectDB();
   let doc = await PlatformSettings.findOne({ key: "default" });
   if (!doc) {
     doc = await PlatformSettings.create({ key: "default", ...DEFAULT_PLATFORM_SETTINGS });

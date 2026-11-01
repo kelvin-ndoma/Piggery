@@ -6,7 +6,8 @@ import { loginSchema } from "@/schemas";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/user";
 import { AppError } from "@/lib/errors";
-import { rateLimit } from "@/lib/rate-limit";
+import { appBaseUrl } from "@/lib/env";
+import { rateLimitDurable } from "@/lib/rate-limit";
 
 const DUMMY_HASH = "$2b$12$SrxgN4f1uLvVx3M8zOE8Le.MLsMsU4AFBa7aQ3GQG676J/bJs2yXe";
 
@@ -20,6 +21,7 @@ class UnavailableSignin extends CredentialsSignin {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
+  useSecureCookies: appBaseUrl().startsWith("https://"),
   secret: process.env.AUTH_SECRET,
   logger: {
     error(error) {
@@ -41,7 +43,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!parsed.success) return null;
         const email = parsed.data.email.toLowerCase();
         try {
-          rateLimit(`login:${email}`, 10, 15 * 60 * 1000);
+          await rateLimitDurable(`login:${email}`, 10, 15 * 60 * 1000);
         } catch (error) {
           if (error instanceof AppError && error.code === "RATE_LIMITED") {
             throw new RateLimitedSignin();

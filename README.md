@@ -38,10 +38,25 @@ Permissions are checked on the server for every farm request. Hidden buttons are
 
 Owners and managers can see sales, expenses, and feed costs. Workers, vets, and viewers cannot. Workers cannot delete historical records; the app does not offer that delete path.
 
-## Checks
+## Production
+
+Use one `.env` on the host (Vercel project env is fine). Do not commit `.env`.
+
+Required:
+
+- `MONGODB_URI`
+- `AUTH_SECRET` — long random string (at least 16 characters)
+- `AUTH_URL` — the public https origin, for example `https://your-domain.com`. On Vercel the app will not start if this is missing or still localhost.
+
+Optional Cloudinary keys only if pig photos should upload.
+
+Node 22. Create the platform superadmin with `npm run platform:admin` after env is set. Do not run `npm run seed` in production.
+
+`GET /api/health` returns `{ ok: true }` when the database answers.
 
 ```bash
 npm run typecheck
 npm run lint
 npm test
+npm run build
 ```

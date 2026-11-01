@@ -3,7 +3,9 @@ import { addDays, daysBetween, formatAge } from "@/lib/dates";
 import { errorPayload, AppError } from "@/lib/errors";
 import { can } from "@/lib/permissions";
 import { pigCodeFromScan } from "@/lib/qr";
+import { rateLimit, resetRateLimitForTests } from "@/lib/rate-limit";
 import { averageDailyGain, assertLitterCounts, assertSensibleWeight, expectedFarrowDate, feedLineCost } from "@/lib/rules";
+import { homeAfterLogin, safeNextPath } from "@/lib/safe-next";
 
 describe("permissions", () => {
   it("keeps financial data with the owner and manager", () => {
@@ -105,5 +107,31 @@ describe("qr and errors", () => {
     expect(formatAge(dob(2.5), today)).toBe("2.5 months");
     expect(formatAge(dob(1.5), today)).toBe("1.5 months");
     expect(formatAge(null, today)).toBe("Not recorded");
+  });
+});
+
+describe("login next path", () => {
+  it("rejects open redirects", () => {
+    expect(safeNextPath("https://evil.example")).toBeNull();
+    expect(safeNextPath("//evil.example")).toBeNull();
+    expect(safeNextPath("/login?next=/pigs")).toBeNull();
+    expect(safeNextPath("/pigs/abc")).toBe("/pigs/abc");
+  });
+
+  it("keeps platform and farm users in their own area", () => {
+    expect(homeAfterLogin("/dashboard", "/pigs/abc")).toBe("/pigs/abc");
+    expect(homeAfterLogin("/dashboard", "/platform/inquiries")).toBe("/dashboard");
+    expect(homeAfterLogin("/platform", "/platform/inquiries")).toBe("/platform/inquiries");
+    expect(homeAfterLogin("/platform", "/pigs")).toBe("/platform");
+    expect(homeAfterLogin("/no-access", "/pigs")).toBe("/no-access");
+  });
+});
+
+describe("rate limits", () => {
+  it("blocks after the window is exceeded", () => {
+    resetRateLimitForTests();
+    rateLimit("test:login", 2, 60_000);
+    rateLimit("test:login", 2, 60_000);
+    expect(() => rateLimit("test:login", 2, 60_000)).toThrow(AppError);
   });
 });

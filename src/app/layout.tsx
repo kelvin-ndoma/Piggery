@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/components/auth-provider";
+import { appBaseUrl } from "@/lib/env";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -15,7 +16,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.AUTH_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(appBaseUrl()),
   title: { default: "Piggery", template: "%s · Piggery" },
   description: "Farm management for pig herds.",
   applicationName: "Piggery",

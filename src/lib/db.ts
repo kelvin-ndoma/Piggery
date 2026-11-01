@@ -1,6 +1,7 @@
 import "server-only";
 import mongoose from "mongoose";
 import { AppError } from "@/lib/errors";
+import { assertRuntimeEnv } from "@/lib/env";
 
 type Cache = {
   conn: typeof mongoose | null;
@@ -10,6 +11,7 @@ type Cache = {
 const globalCache = globalThis as typeof globalThis & { mongooseCache?: Cache };
 
 export async function connectDB(): Promise<typeof mongoose> {
+  assertRuntimeEnv();
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     throw new AppError("DATABASE_ERROR", "The database is not configured.", 500);

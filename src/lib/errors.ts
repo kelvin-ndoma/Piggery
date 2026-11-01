@@ -87,7 +87,7 @@ export function errorPayload(error: unknown): { status: number; body: ApiFailure
     };
   }
 
-  console.error(error);
+  console.error("Unhandled error", error instanceof Error ? error.name : "unknown");
   return {
     status: 500,
     body: {

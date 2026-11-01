@@ -1,6 +1,7 @@
 export { User } from "@/models/user";
 export { Farm, Building, Pen, Counter } from "@/models/farm";
 export { PlatformSettings, FarmInquiry, FarmPayment } from "@/models/platform";
+export { RateLimitBucket } from "@/models/rate-limit";
 export { Pig, PigWeight, PigMovement, PigBirth } from "@/models/pig";
 export { Breeding, Litter } from "@/models/breeding";
 export { Vaccine, Vaccination, HealthIncident, Treatment, Mortality } from "@/models/health";

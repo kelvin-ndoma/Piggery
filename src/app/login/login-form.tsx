@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { homeAfterLogin } from "@/lib/safe-next";
 
 export function LoginForm({ nextPath }: { nextPath?: string | null }) {
   const router = useRouter();
@@ -18,29 +19,38 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
     const form = new FormData(event.currentTarget);
     setPending(true);
     setError(null);
-    const result = await signIn("credentials", {
-      email: String(form.get("email") ?? ""),
-      password: String(form.get("password") ?? ""),
-      redirect: false,
-    });
-    setPending(false);
+    let result: Awaited<ReturnType<typeof signIn>> | undefined;
+    try {
+      result = await signIn("credentials", {
+        email: String(form.get("email") ?? ""),
+        password: String(form.get("password") ?? ""),
+        redirect: false,
+      });
+    } catch {
+      setPending(false);
+      setError("Could not reach the farm system. Check your connection and try again.");
+      return;
+    }
     if (result?.code === "rate_limited") {
+      setPending(false);
       setError("Too many attempts. Wait a few minutes and try again.");
       return;
     }
     if (result?.code === "unavailable") {
+      setPending(false);
       setError("The farm system is unavailable. Try again shortly.");
       return;
     }
     if (!result || result.error) {
+      setPending(false);
       setError("Invalid email or password.");
       return;
     }
-    const home = await fetch("/api/session/home").then((res) => res.json()).catch(() => null);
+    const home = await fetch("/api/session/home", { cache: "no-store" }).then((res) => res.json()).catch(() => null);
     const homePath =
       home && home.success && typeof home.data?.path === "string" ? home.data.path : "/dashboard";
-    const path = homePath === "/platform" && nextPath?.startsWith("/platform") ? nextPath : homePath;
-    router.push(path);
+    setPending(false);
+    router.push(homeAfterLogin(homePath, nextPath));
     router.refresh();
   }
 
@@ -49,7 +59,7 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
       {error ? <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</p> : null}
       <label className="block space-y-1.5 text-sm font-medium">
         Email
-        <Input name="email" type="email" autoComplete="username" required />
+        <Input name="email" type="email" autoComplete="username" autoCapitalize="none" inputMode="email" required />
       </label>
       <label className="block space-y-1.5 text-sm font-medium">
         Password

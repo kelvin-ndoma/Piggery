@@ -18,22 +18,29 @@ export function InquiryForm() {
     const form = new FormData(event.currentTarget);
     setPending(true);
     setError(null);
-    const res = await fetch("/api/inquiries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: String(form.get("name") ?? ""),
-        email: String(form.get("email") ?? ""),
-        phone: String(form.get("phone") ?? ""),
-        farmName: String(form.get("farmName") ?? ""),
-        country: String(form.get("country") ?? "Kenya"),
-        locationNote: String(form.get("locationNote") ?? ""),
-        herdNote: String(form.get("herdNote") ?? ""),
-        plan: String(form.get("plan") ?? "STARTER"),
-        cycle: String(form.get("cycle") ?? "MONTHLY"),
-        message: String(form.get("message") ?? ""),
-      }),
-    });
+    let res: Response;
+    try {
+      res = await fetch("/api/inquiries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: String(form.get("name") ?? ""),
+          email: String(form.get("email") ?? ""),
+          phone: String(form.get("phone") ?? ""),
+          farmName: String(form.get("farmName") ?? ""),
+          country: String(form.get("country") ?? "Kenya"),
+          locationNote: String(form.get("locationNote") ?? ""),
+          herdNote: String(form.get("herdNote") ?? ""),
+          plan: String(form.get("plan") ?? "STARTER"),
+          cycle: String(form.get("cycle") ?? "MONTHLY"),
+          message: String(form.get("message") ?? ""),
+        }),
+      });
+    } catch {
+      setPending(false);
+      setError("Could not send the inquiry. Check your connection and try again.");
+      return;
+    }
     const json = (await res.json().catch(() => null)) as
       | { success: true }
       | { success: false; error?: { message?: string } }
@@ -60,7 +67,7 @@ export function InquiryForm() {
   return (
     <form onSubmit={onSubmit} className="rounded-[1.6rem] bg-white p-5 text-stone-900 shadow-xl sm:p-8">
       {error ? <p className="mb-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</p> : null}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <fieldset disabled={pending} className="grid gap-4 sm:grid-cols-2">
         <label className={fieldClass}>
           Your name
           <Input name="name" required maxLength={120} autoComplete="name" />
@@ -110,7 +117,7 @@ export function InquiryForm() {
           Message
           <Textarea name="message" maxLength={2000} placeholder="Optional. Anything we should know." />
         </label>
-      </div>
+      </fieldset>
       <Button type="submit" disabled={pending} className="mt-5 w-full sm:w-auto">
         {pending ? "Sending..." : "Send inquiry"}
       </Button>

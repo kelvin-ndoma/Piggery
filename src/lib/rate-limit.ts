@@ -17,6 +17,37 @@ export function rateLimit(key: string, limit: number, windowMs: number): void {
   }
 }
 
+/** Login and public inquiry limits must survive serverless instances. */
+export async function rateLimitDurable(key: string, limit: number, windowMs: number): Promise<void> {
+  try {
+    const { connectDB } = await import("@/lib/db");
+    const { RateLimitBucket } = await import("@/models/rate-limit");
+    await connectDB();
+    const now = new Date();
+    const existing = await RateLimitBucket.findOne({ key });
+    if (!existing || existing.reset <= now) {
+      await RateLimitBucket.findOneAndUpdate(
+        { key },
+        { $set: { count: 1, reset: new Date(now.getTime() + windowMs) } },
+        { upsert: true },
+      );
+      return;
+    }
+    const updated = await RateLimitBucket.findOneAndUpdate(
+      { key, reset: { $gt: now } },
+      { $inc: { count: 1 } },
+      { new: true },
+    );
+    if (!updated) return;
+    if (updated.count > limit) {
+      throw new AppError("RATE_LIMITED", "Too many requests. Please wait a moment and try again.", 429);
+    }
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    rateLimit(key, limit, windowMs);
+  }
+}
+
 export function resetRateLimitForTests(): void {
   buckets.clear();
 }
