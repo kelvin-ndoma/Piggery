@@ -64,7 +64,7 @@ export const BILLING_PLAN_CATALOG = [
 export const PLATFORM_SUPERADMIN_EMAIL = "kelvinndomamutua@gmail.com";
 
 export const DEFAULT_PLATFORM_SETTINGS = {
-  supportEmail: PLATFORM_SUPERADMIN_EMAIL,
+  supportEmail: "",
   supportPhone: "",
   defaultCountry: "Kenya",
   defaultCurrency: "KES",

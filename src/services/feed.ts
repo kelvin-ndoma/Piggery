@@ -65,14 +65,14 @@ export async function recordFeed(ctx: FarmContext, input: FeedRecordInput) {
     const updated = await FeedInventory.findOneAndUpdate(
       { farmId, feedTypeId: feedType._id, quantityKg: { $gte: Math.abs(delta) } },
       { $inc: { quantityKg: delta } },
-      { new: true },
+      { returnDocument: "after" },
     );
     if (!updated) throw new AppError("VALIDATION_ERROR", "Not enough of that feed is in inventory.", 400);
   } else {
     await FeedInventory.findOneAndUpdate(
       { farmId, feedTypeId: feedType._id },
       { $inc: { quantityKg: delta } },
-      { upsert: true, new: true },
+      { upsert: true, returnDocument: "after" },
     );
   }
 

@@ -113,35 +113,49 @@ export async function acceptFarmInquiry(
   },
 ) {
   await connectDB();
-  const inquiry = await FarmInquiry.findById(toObjectId(id));
-  if (!inquiry) throw new AppError("NOT_FOUND", "Inquiry not found.", 404);
-  if (inquiry.status !== "OPEN") {
+  const inquiryId = toObjectId(id);
+  // Claim the inquiry first so a double click or a second admin cannot create two farms.
+  const inquiry = await FarmInquiry.findOneAndUpdate(
+    { _id: inquiryId, status: "OPEN" },
+    { $set: { status: "ACCEPTED", reviewedByEmail: ctx.userEmail, reviewedAt: new Date() } },
+    { returnDocument: "after" },
+  );
+  if (!inquiry) {
+    const exists = await FarmInquiry.exists({ _id: inquiryId });
+    if (!exists) throw new AppError("NOT_FOUND", "Inquiry not found.", 404);
     throw new AppError("CONFLICT", "This inquiry was already reviewed.", 409);
   }
 
-  const created = await createFarmTenant(ctx, {
-    farmName: inquiry.farmName,
-    country: inquiry.country,
-    phone: inquiry.phone,
-    locationNote: inquiry.locationNote,
-    ownerName: inquiry.name,
-    ownerEmail: inquiry.email,
-    ownerPassword: input.ownerPassword,
-    ownerPhone: inquiry.phone,
-    billing: {
-      plan: input.plan,
-      status: input.status,
-      cycle: input.cycle,
-      amount: input.amount,
-      notes: input.notes ?? `Accepted inquiry ${String(inquiry._id)}`,
-    },
-  } satisfies CreateFarmTenantInput);
+  let created: Awaited<ReturnType<typeof createFarmTenant>>;
+  try {
+    created = await createFarmTenant(ctx, {
+      farmName: inquiry.farmName,
+      country: inquiry.country,
+      phone: inquiry.phone,
+      locationNote: inquiry.locationNote,
+      ownerName: inquiry.name,
+      ownerEmail: inquiry.email,
+      ownerPassword: input.ownerPassword,
+      ownerPhone: inquiry.phone,
+      keepExistingAccount: true,
+      billing: {
+        plan: input.plan,
+        status: input.status,
+        cycle: input.cycle,
+        amount: input.amount,
+        notes: input.notes ?? `Accepted inquiry ${String(inquiry._id)}`,
+      },
+    } satisfies CreateFarmTenantInput);
+  } catch (error) {
+    await FarmInquiry.updateOne(
+      { _id: inquiryId, status: "ACCEPTED", farmId: null },
+      { $set: { status: "OPEN" }, $unset: { reviewedByEmail: "", reviewedAt: "" } },
+    );
+    throw error;
+  }
 
-  inquiry.status = "ACCEPTED";
   inquiry.farmId = toObjectId(created.farmId);
   inquiry.reviewNote = input.notes ?? "";
-  inquiry.reviewedByEmail = ctx.userEmail;
-  inquiry.reviewedAt = new Date();
   await inquiry.save();
 
   return { farmId: created.farmId, ownerEmail: inquiry.email };

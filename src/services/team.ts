@@ -58,12 +58,12 @@ export async function updateTeamUser(ctx: FarmContext, id: string, input: { role
   if (input.isActive === false && String(user._id) === ctx.userId) {
     throw new AppError("VALIDATION_ERROR", "You cannot disable your own account.", 400);
   }
+  // Only this farm's membership changes. The account itself may belong to other farms.
   if (input.isActive !== undefined) {
-    user.isActive = input.isActive;
     membership.status = input.isActive ? "ACTIVE" : "DISABLED";
   }
   await user.save();
-  await writeAudit(ctx, "user.update", "User", String(user._id), { role: membership.role, isActive: user.isActive });
+  await writeAudit(ctx, "user.update", "User", String(user._id), { role: membership.role, status: membership.status });
   return { id: String(user._id) };
 }
 
@@ -79,7 +79,6 @@ export async function removeTeamUser(ctx: FarmContext, id: string) {
     throw new AppError("FORBIDDEN", "The farm owner cannot be removed from the team.", 403);
   }
   membership.status = "DISABLED";
-  user.isActive = false;
   if (user.activeFarmId && String(user.activeFarmId) === ctx.farmId) {
     user.activeFarmId = undefined;
   }

@@ -55,7 +55,7 @@ export function AcceptInquiryForm({
         <h2 className="text-base font-semibold">Accept and create the farm</h2>
         <p className="mt-1 text-sm text-stone-600">
           Creates the farm tenant, sets billing, and gives the inquirer an owner login. Send them this temporary
-          password yourself.
+          password yourself. If the email already has an account, it keeps its current password.
         </p>
       </div>
       {error ? <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</p> : null}

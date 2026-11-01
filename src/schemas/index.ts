@@ -467,7 +467,7 @@ export const farmBillingSchema = z.object({
 });
 
 export const platformSettingsSchema = z.object({
-  supportEmail: z.email("Enter a valid support email"),
+  supportEmail: z.union([z.literal(""), z.email("Enter a valid support email")]),
   supportPhone: z
     .string()
     .trim()

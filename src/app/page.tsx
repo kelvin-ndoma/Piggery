@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { LandingPage } from "@/components/marketing/landing-page";
 import { auth } from "@/lib/auth";
 import { resolvePostLoginPath } from "@/lib/platform";
+import { publicSupportEmail } from "@/lib/public-contact";
 import { getPlatformSettings } from "@/services/platform";
-import { DEFAULT_PLATFORM_SETTINGS } from "@/types/domain";
 
 export const metadata: Metadata = {
-  title: { absolute: "Piggery — Farm records for pig herds" },
+  title: { absolute: "Piggery — Farm software for pig herds" },
   description:
-    "Daily records for a pig farm: herd, pens, serving dates, litters, health, feed, and today’s counts from what the team saved.",
+    "A workspace for pig farms in Kenya. Record the herd, serving, health, feed, and housing. Today’s numbers come from what the team saved.",
   robots: { index: true, follow: true },
   openGraph: {
-    title: "Piggery — Farm records for pig herds",
+    title: "Piggery — Farm software for pig herds",
     description:
-      "Daily records for a pig farm: herd, pens, serving dates, litters, health, feed, and today’s counts.",
+      "One workspace for the herd, the team, and the day. Built for pig farms in Kenya.",
     url: "/",
     siteName: "Piggery",
     locale: "en_KE",
@@ -24,25 +25,17 @@ export const metadata: Metadata = {
 
 export default async function Home() {
   const session = await auth();
-  const userId = session?.user?.id;
-  const appHref = userId ? await resolvePostLoginPath(userId) : "/login";
-  const appLabel = appHref === "/platform" ? "Open platform" : userId ? "Open farm" : "Sign in";
-  const supportEmail = await supportEmailOrDefault();
+  if (session?.user?.id) {
+    redirect(await resolvePostLoginPath(session.user.id));
+  }
 
-  return (
-    <LandingPage
-      appHref={appHref}
-      appLabel={appLabel}
-      supportEmail={supportEmail}
-    />
-  );
+  return <LandingPage supportEmail={await landingSupportEmail()} />;
 }
 
-async function supportEmailOrDefault(): Promise<string> {
+async function landingSupportEmail(): Promise<string | null> {
   try {
-    const settings = await getPlatformSettings();
-    return settings.supportEmail || DEFAULT_PLATFORM_SETTINGS.supportEmail;
+    return publicSupportEmail((await getPlatformSettings()).supportEmail);
   } catch {
-    return DEFAULT_PLATFORM_SETTINGS.supportEmail;
+    return null;
   }
 }

@@ -61,7 +61,7 @@ export function PlatformSettingsForm({
       <div className="grid gap-4 md:grid-cols-2">
         <label className="block space-y-1.5 text-sm font-medium">
           Support email
-          <Input name="supportEmail" type="email" required defaultValue={settings.supportEmail} />
+          <Input name="supportEmail" type="email" defaultValue={settings.supportEmail} />
         </label>
         <label className="block space-y-1.5 text-sm font-medium">
           Support phone

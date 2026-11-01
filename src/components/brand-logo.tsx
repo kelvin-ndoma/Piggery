@@ -62,7 +62,7 @@ export function BrandLockup({
             tone === "dark" ? "text-emerald-100/65" : "text-stone-500",
           )}
         >
-          Farm app
+          Farm software
         </span>
       </span>
     </span>

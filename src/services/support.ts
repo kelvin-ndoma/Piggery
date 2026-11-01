@@ -34,7 +34,7 @@ export async function nextSequence(farmId: Types.ObjectId, key: string): Promise
   const counter = await Counter.findOneAndUpdate(
     { farmId, key },
     { $inc: { seq: 1 } },
-    { new: true, upsert: true },
+    { returnDocument: "after", upsert: true },
   );
   if (!counter) throw new AppError("DATABASE_ERROR", "Could not allocate an identifier.", 500);
   return counter.seq;

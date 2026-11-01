@@ -36,7 +36,7 @@ export async function rateLimitDurable(key: string, limit: number, windowMs: num
     const updated = await RateLimitBucket.findOneAndUpdate(
       { key, reset: { $gt: now } },
       { $inc: { count: 1 } },
-      { new: true },
+      { returnDocument: "after" },
     );
     if (!updated) return;
     if (updated.count > limit) {

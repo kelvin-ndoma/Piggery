@@ -32,6 +32,8 @@ export type CreateFarmTenantInput = {
   ownerEmail: string;
   ownerPassword: string;
   ownerPhone?: string;
+  /** Owner email came from the public, not an admin: never touch an existing account's login. */
+  keepExistingAccount?: boolean;
   billing?: {
     plan: BillingPlan;
     status: BillingStatus;
@@ -289,6 +291,10 @@ export async function getPlatformFarm(id: string) {
 export async function createFarmTenant(ctx: PlatformContext, input: CreateFarmTenantInput) {
   const settings = await getPlatformSettings();
   const email = input.ownerEmail.toLowerCase().trim();
+  let user = await User.findOne({ email });
+  if (user && input.keepExistingAccount && !user.isActive) {
+    throw new AppError("CONFLICT", "That owner email belongs to a disabled account.", 409);
+  }
   const slug = await uniqueSlug(input.farmName);
   const farm = await Farm.create({
     name: input.farmName.trim(),
@@ -314,20 +320,15 @@ export async function createFarmTenant(ctx: PlatformContext, input: CreateFarmTe
     },
   });
 
-  let user = await User.findOne({ email });
   const passwordHash = await bcrypt.hash(input.ownerPassword, 12);
   if (user) {
-    const existing = user.memberships.find((membership) => membership.farmId.equals(farm._id));
-    if (existing) {
-      existing.role = "OWNER";
-      existing.status = "ACTIVE";
-    } else {
-      user.memberships.push({ farmId: farm._id, role: "OWNER", status: "ACTIVE" });
+    user.memberships.push({ farmId: farm._id, role: "OWNER", status: "ACTIVE" });
+    if (!input.keepExistingAccount) {
+      user.isActive = true;
+      user.name = input.ownerName.trim() || user.name;
+      if (input.ownerPhone) user.phone = input.ownerPhone;
+      user.passwordHash = passwordHash;
     }
-    user.isActive = true;
-    user.name = input.ownerName.trim() || user.name;
-    if (input.ownerPhone) user.phone = input.ownerPhone;
-    user.passwordHash = passwordHash;
     user.activeFarmId = farm._id;
     await user.save();
   } else {
@@ -574,7 +575,7 @@ export async function updatePlatformSettings(
         trialDays: input.trialDays,
       },
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
   );
   return {
     supportEmail: doc.supportEmail,

@@ -56,16 +56,16 @@ export function InquiryForm() {
   if (done) {
     return (
       <div className="rounded-[1.6rem] bg-white p-6 text-stone-900 shadow-xl sm:p-8">
-        <h3 className="text-xl font-semibold">Inquiry sent</h3>
+        <h3 className="text-xl font-semibold">Request received</h3>
         <p className="mt-2 text-sm leading-7 text-stone-600">
-          The platform team will review it. If the farm is accepted, the owner email in the inquiry receives a login.
+          We will review it. If the farm is accepted, the owner email in this form receives the first login.
         </p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="rounded-[1.6rem] bg-white p-5 text-stone-900 shadow-xl sm:p-8">
+    <form onSubmit={onSubmit} className="rounded-2xl border border-stone-200 bg-white p-5 text-stone-900 shadow-sm sm:p-8">
       {error ? <p className="mb-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</p> : null}
       <fieldset disabled={pending} className="grid gap-4 sm:grid-cols-2">
         <label className={fieldClass}>
@@ -119,7 +119,7 @@ export function InquiryForm() {
         </label>
       </fieldset>
       <Button type="submit" disabled={pending} className="mt-5 w-full sm:w-auto">
-        {pending ? "Sending..." : "Send inquiry"}
+        {pending ? "Sending..." : "Request access"}
       </Button>
     </form>
   );

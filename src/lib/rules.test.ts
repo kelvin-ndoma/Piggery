@@ -5,7 +5,9 @@ import { can } from "@/lib/permissions";
 import { pigCodeFromScan } from "@/lib/qr";
 import { rateLimit, resetRateLimitForTests } from "@/lib/rate-limit";
 import { averageDailyGain, assertLitterCounts, assertSensibleWeight, expectedFarrowDate, feedLineCost } from "@/lib/rules";
+import { publicSupportEmail } from "@/lib/public-contact";
 import { homeAfterLogin, safeNextPath } from "@/lib/safe-next";
+import { PLATFORM_SUPERADMIN_EMAIL } from "@/types/domain";
 
 describe("permissions", () => {
   it("keeps financial data with the owner and manager", () => {
@@ -107,6 +109,14 @@ describe("qr and errors", () => {
     expect(formatAge(dob(2.5), today)).toBe("2.5 months");
     expect(formatAge(dob(1.5), today)).toBe("1.5 months");
     expect(formatAge(null, today)).toBe("Not recorded");
+  });
+});
+
+describe("public contact", () => {
+  it("does not publish the operator email", () => {
+    expect(publicSupportEmail(PLATFORM_SUPERADMIN_EMAIL)).toBeNull();
+    expect(publicSupportEmail("support@example.com")).toBe("support@example.com");
+    expect(publicSupportEmail("")).toBeNull();
   });
 });
 
